@@ -1,0 +1,1397 @@
+diff --git a/Makefile b/Makefile
+index 09d790c..0e42180 100644
+--- a/Makefile
++++ b/Makefile
+@@ -76,8 +76,17 @@ AS = $(TOOLPREFIX)gas
+ LD = $(TOOLPREFIX)ld
+ OBJCOPY = $(TOOLPREFIX)objcopy
+ OBJDUMP = $(TOOLPREFIX)objdump
+-CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m32 -Werror -fno-omit-frame-pointer
++CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m32 -Werror -fno-omit-frame-pointer -D SELECTION=$(SELECTION) -D VERBOSE_PRINT=$(VERBOSE_PRINT)
+ CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
++
++ifndef SELECTION
++    SELECTION=SCFIFO
++endif
++
++ifndef VERBOSE_PRINT
++    VERBOSE_PRINT=FALSE
++endif
++
+ ASFLAGS = -m32 -gdwarf-2 -Wa,-divide
+ # FreeBSD ld wants ``elf_i386_fbsd''
+ LDFLAGS += -m $(shell $(LD) -V | grep elf_i386 2>/dev/null | head -n 1)
+@@ -181,6 +190,8 @@ UPROGS=\
+ 	_usertests\
+ 	_wc\
+ 	_zombie\
++	_test\
++	_testExec\
+ 
+ fs.img: mkfs README $(UPROGS)
+ 	./mkfs fs.img README $(UPROGS)
+@@ -250,7 +261,7 @@ qemu-nox-gdb: fs.img xv6.img .gdbinit
+ EXTRA=\
+ 	mkfs.c ulib.c user.h cat.c echo.c forktest.c grep.c kill.c\
+ 	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
+-	printf.c umalloc.c\
++	printf.c umalloc.c test.c testExec.c\
+ 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
+ 	.gdbinit.tmpl gdbutil\
+ 
+diff --git a/defs.h b/defs.h
+index be45622..f49118d 100644
+--- a/defs.h
++++ b/defs.h
+@@ -78,6 +78,10 @@ char*           kalloc(void);
+ void            kfree(char*);
+ void            kinit1(void*, void*);
+ void            kinit2(void*, void*);
++int             decrease_reference_count_and_get(void *pa);
++int             increase_reference_count_and_get(void *pa);
++int             get_num_of_free_pages(void);
++int             get_ref_count(void *pa);
+ 
+ // kbd.c
+ void            kbdintr(void);
+@@ -195,6 +199,10 @@ void            switchuvm(struct proc*);
+ void            switchkvm(void);
+ int             copyout(pde_t*, uint, void*, uint);
+ void            clearpteu(pde_t *pgdir, char *uva);
++int             bring_page_from_swapped(uint va);
++int             handle_cow_page(uint va);
++void            update_counters(void);
++int             get_next_available_spot_in_psyc(void);
+ 
+ // number of elements in fixed-size array
+ #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+diff --git a/exec.c b/exec.c
+index b40134f..39c6274 100644
+--- a/exec.c
++++ b/exec.c
+@@ -35,6 +35,24 @@ exec(char *path, char **argv)
+   if(elf.magic != ELF_MAGIC)
+     goto bad;
+ 
++
++  //clear all structs
++  if(curproc->pid > 2) {
++    curproc->psyc_pages_fifo.tail = 0;
++    curproc->psyc_pages_fifo.head = 0;
++    curproc->psyc_pages_fifo.counter = 0;
++    curproc->swapped_pages.counter = 0;
++    for (int i = 0; i < MAX_PSYC_PAGES; i++) {
++      curproc->swapped_pages.pages[i].page_vaddress = -1;
++      curproc->swapped_pages.pages[i].placeOnFile = -1;
++      curproc->psyc_pages_fifo.addr_fifo[i].va = -1;
++      curproc->psyc_pages_fifo.addr_fifo[i].access_counter = -1;
++    }
++    curproc->numOfSwaps=0;
++    curproc->numOfPageFaults=0;
++  }
++
++
+   if((pgdir = setupkvm()) == 0)
+     goto bad;
+ 
+@@ -93,6 +111,7 @@ exec(char *path, char **argv)
+       last = s+1;
+   safestrcpy(curproc->name, last, sizeof(curproc->name));
+ 
++
+   // Commit to the user image.
+   oldpgdir = curproc->pgdir;
+   curproc->pgdir = pgdir;
+@@ -101,7 +120,7 @@ exec(char *path, char **argv)
+   curproc->tf->esp = sp;
+   switchuvm(curproc);
+   freevm(oldpgdir);
+-  return 0;
++    return 0;
+ 
+  bad:
+   if(pgdir)
+diff --git a/fs.c b/fs.c
+index 966e978..3b3c225 100644
+--- a/fs.c
++++ b/fs.c
+@@ -504,7 +504,6 @@ writei(struct inode *ip, char *src, uint off, uint n)
+     log_write(bp);
+     brelse(bp);
+   }
+-
+   if(n > 0 && off > ip->size){
+     ip->size = off;
+     iupdate(ip);
+diff --git a/kalloc.c b/kalloc.c
+index 14cd4f4..003aa18 100644
+--- a/kalloc.c
++++ b/kalloc.c
+@@ -21,6 +21,8 @@ struct {
+   struct spinlock lock;
+   int use_lock;
+   struct run *freelist;
++  unsigned char cow_reference_countOfProcesses[PHYSTOP/PGSIZE];
++  int is_init;
+ } kmem;
+ 
+ // Initialization happens in two phases.
+@@ -33,6 +35,7 @@ kinit1(void *vstart, void *vend)
+ {
+   initlock(&kmem.lock, "kmem");
+   kmem.use_lock = 0;
++  kmem.is_init = 2;
+   freerange(vstart, vend);
+ }
+ 
+@@ -41,6 +44,7 @@ kinit2(void *vstart, void *vend)
+ {
+   freerange(vstart, vend);
+   kmem.use_lock = 1;
++  kmem.is_init = 1;
+ }
+ 
+ void
+@@ -50,7 +54,55 @@ freerange(void *vstart, void *vend)
+   p = (char*)PGROUNDUP((uint)vstart);
+   for(; p + PGSIZE <= (char*)vend; p += PGSIZE)
+     kfree(p);
++  for(int i = 0; i < (PHYSTOP/PGSIZE); i++){
++    kmem.cow_reference_countOfProcesses[i] = 0;
++  }
+ }
++
++int
++get_num_of_free_pages() {
++    int counter = 0;
++    for (int i = 0; i < (PHYSTOP / PGSIZE); i++) {
++        if(kmem.cow_reference_countOfProcesses[i] == 0)
++            counter++;
++    }
++    return counter;
++}
++
++//decrease the reference count
++int
++decrease_reference_count_and_get(void *pa){
++//    if ((uint)pa >= PHYSTOP || (uint)pa < (uint)V2P(end) )
++//      panic("wtf");
++  int index = (PGROUNDDOWN((uint)pa)/PGSIZE); //get the relevant index in cow_reference_countOfProcesses array
++  acquire(&kmem.lock);
++  kmem.cow_reference_countOfProcesses[index]--;
++  int ret = kmem.cow_reference_countOfProcesses[index];
++  release(&kmem.lock);
++  return ret;
++}
++
++//increase the reference count
++int
++increase_reference_count_and_get(void *pa){
++//    if ((uint)pa >= PHYSTOP || (uint)pa < (uint)V2P(end) )
++//        panic("wtf");
++  int index = (PGROUNDDOWN((uint)pa)/PGSIZE); //get the relevant index in cow_reference_countOfProcesses array
++  acquire(&kmem.lock);
++  kmem.cow_reference_countOfProcesses[index]++;
++  int ret = kmem.cow_reference_countOfProcesses[index];
++  release(&kmem.lock);
++  return ret;
++}
++
++int get_ref_count(void *pa){
++  int index = (PGROUNDDOWN((uint)pa)/PGSIZE); //get the relevant index in cow_reference_countOfProcesses array
++  acquire(&kmem.lock);
++  int ret = kmem.cow_reference_countOfProcesses[index];
++  release(&kmem.lock);
++  return ret;
++}
++
+ //PAGEBREAK: 21
+ // Free the page of physical memory pointed at by v,
+ // which normally should have been returned by a
+@@ -64,6 +116,14 @@ kfree(char *v)
+   if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
+     panic("kfree");
+ 
++  //implement cow (decrease the relevant reference count)
++  if(kmem.is_init != 2) {
++      int reference_count = decrease_reference_count_and_get((void *) V2P(v));
++      if (reference_count > 0) {
++          return;
++      }
++  }
++
+   // Fill with junk to catch dangling refs.
+   memset(v, 1, PGSIZE);
+ 
+@@ -87,8 +147,11 @@ kalloc(void)
+   if(kmem.use_lock)
+     acquire(&kmem.lock);
+   r = kmem.freelist;
+-  if(r)
++  if(r) {
+     kmem.freelist = r->next;
++    int index = (PGROUNDDOWN(V2P(r))/PGSIZE);
++    kmem.cow_reference_countOfProcesses[index] = 1;
++  }
+   if(kmem.use_lock)
+     release(&kmem.lock);
+   return (char*)r;
+diff --git a/mmu.h b/mmu.h
+index a82d8e2..319d0b0 100644
+--- a/mmu.h
++++ b/mmu.h
+@@ -4,6 +4,10 @@
+ // Eflags register
+ #define FL_IF           0x00000200      // Interrupt Enable
+ 
++#define PTE_PG 0x200 // Paged out to secondary storage
++#define PTE_COW 0x400
++#define PTE_A 0x020   // Accessed
++
+ // Control Register flags
+ #define CR0_PE          0x00000001      // Protection Enable
+ #define CR0_WP          0x00010000      // Write Protect
+@@ -179,3 +183,4 @@ struct gatedesc {
+ }
+ 
+ #endif
++
+diff --git a/proc.c b/proc.c
+index 806b1b1..0178ac6 100644
+--- a/proc.c
++++ b/proc.c
+@@ -13,6 +13,8 @@ struct {
+ } ptable;
+ 
+ static struct proc *initproc;
++static char buffer[(PGSIZE)];
++int num_of_free_pages_after_kernel = 0;
+ 
+ int nextpid = 1;
+ extern void forkret(void);
+@@ -112,6 +114,21 @@ found:
+   memset(p->context, 0, sizeof *p->context);
+   p->context->eip = (uint)forkret;
+ 
++  if(p->pid > 2) {
++    createSwapFile(p);
++    p->psyc_pages_fifo.tail = 0;
++    p->psyc_pages_fifo.head = 0;
++    p->psyc_pages_fifo.counter = 0;
++    p->swapped_pages.counter = 0;
++    for (int i = 0; i < MAX_PSYC_PAGES; i++) {
++      p->swapped_pages.pages[i].page_vaddress = -1;
++      p->swapped_pages.pages[i].placeOnFile = -1;
++      p->psyc_pages_fifo.addr_fifo[i].va = -1;
++      p->psyc_pages_fifo.addr_fifo[i].access_counter = -1;
++    }
++    p->numOfPageFaults = 0;
++    p->numOfSwaps = 0;
++  }
+   return p;
+ }
+ 
+@@ -120,6 +137,7 @@ found:
+ void
+ userinit(void)
+ {
++  num_of_free_pages_after_kernel = get_num_of_free_pages();
+   struct proc *p;
+   extern char _binary_initcode_start[], _binary_initcode_size[];
+ 
+@@ -153,6 +171,15 @@ userinit(void)
+   release(&ptable.lock);
+ }
+ 
++void
++copy_swap_file(struct proc* np, struct proc* curproc) {
++    for (int j = 0; j < MAX_SWAP_PAGES; j += 1) {
++        if (curproc->swapped_pages.pages[j].page_vaddress != - 1) {
++            readFromSwapFile(curproc, buffer, j*PGSIZE, (PGSIZE));
++            writeToSwapFile(np, buffer, j*PGSIZE, (PGSIZE));
++        }
++    }
++}
+ // Grow current process's memory by n bytes.
+ // Return 0 on success, -1 on failure.
+ int
+@@ -196,6 +223,23 @@ fork(void)
+     np->state = UNUSED;
+     return -1;
+   }
++
++  if(curproc->pid > 2) {
++    //createSwapFile(p);
++    np->psyc_pages_fifo.tail = curproc->psyc_pages_fifo.tail;
++    np->psyc_pages_fifo.head = curproc->psyc_pages_fifo.head;
++    np->psyc_pages_fifo.counter = curproc->psyc_pages_fifo.counter;
++    np->swapped_pages.counter = curproc->swapped_pages.counter;
++    for (int i = 0; i < MAX_PSYC_PAGES; i++) {
++      np->swapped_pages.pages[i].page_vaddress = curproc->swapped_pages.pages[i].page_vaddress;
++      np->swapped_pages.pages[i].placeOnFile = curproc->swapped_pages.pages[i].placeOnFile;
++      np->psyc_pages_fifo.addr_fifo[i].va = curproc->psyc_pages_fifo.addr_fifo[i].va;
++      np->psyc_pages_fifo.addr_fifo[i].access_counter = curproc->psyc_pages_fifo.addr_fifo[i].access_counter;
++    }
++    copy_swap_file(np,curproc);
++  }
++
++
+   np->sz = curproc->sz;
+   np->parent = curproc;
+   *np->tf = *curproc->tf;
+@@ -218,6 +262,8 @@ fork(void)
+ 
+   release(&ptable.lock);
+ 
++
++
+   return pid;
+ }
+ 
+@@ -227,6 +273,8 @@ fork(void)
+ void
+ exit(void)
+ {
++
++
+   struct proc *curproc = myproc();
+   struct proc *p;
+   int fd;
+@@ -247,8 +295,27 @@ exit(void)
+   end_op();
+   curproc->cwd = 0;
+ 
++  if(curproc->pid > 2) {
++    removeSwapFile(curproc);
++  }
++
+   acquire(&ptable.lock);
+ 
++
++  #if VERBOSE_PRINT==TRUE
++    static char *states[] = {
++            [UNUSED]    "unused",
++            [EMBRYO]    "embryo",
++            [SLEEPING]  "sleep ",
++            [RUNNABLE]  "runble",
++            [RUNNING]   "run   ",
++            [ZOMBIE]    "zombie"
++    };
++    cprintf("%d %s %d %d %d %d %s ", curproc->pid, states[curproc->state], curproc->psyc_pages_fifo.counter, curproc->swapped_pages.counter, curproc->numOfPageFaults, curproc->numOfSwaps, curproc->name);
++    cprintf("\n");
++    cprintf("%d / %d free pages frames in the system\n",get_num_of_free_pages(),num_of_free_pages_after_kernel);
++  #endif
++
+   // Parent might be sleeping in wait().
+   wakeup1(curproc->parent);
+ 
+@@ -295,6 +362,22 @@ wait(void)
+         p->name[0] = 0;
+         p->killed = 0;
+         p->state = UNUSED;
++
++        if(p->pid > 2) {
++          p->psyc_pages_fifo.tail = 0;
++          p->psyc_pages_fifo.head = 0;
++          p->psyc_pages_fifo.counter = 0;
++          p->swapped_pages.counter = 0;
++          for (int i = 0; i < MAX_PSYC_PAGES; i++) {
++            p->swapped_pages.pages[i].page_vaddress = -1;
++            p->swapped_pages.pages[i].placeOnFile = -1;
++            p->psyc_pages_fifo.addr_fifo[i].va = -1;
++            p->psyc_pages_fifo.addr_fifo[i].access_counter = -1;
++          }
++          p->numOfSwaps =0;
++          p->numOfPageFaults=0;
++        }
++
+         release(&ptable.lock);
+         return pid;
+       }
+@@ -523,12 +606,13 @@ procdump(void)
+       state = states[p->state];
+     else
+       state = "???";
+-    cprintf("%d %s %s", p->pid, state, p->name);
++    cprintf("%d %s %d %d %d %d %s ", p->pid, state, p->psyc_pages_fifo.counter, p->swapped_pages.counter, p->numOfPageFaults, p->numOfSwaps, p->name);
+     if(p->state == SLEEPING){
+       getcallerpcs((uint*)p->context->ebp+2, pc);
+       for(i=0; i<10 && pc[i] != 0; i++)
+         cprintf(" %p", pc[i]);
+     }
+     cprintf("\n");
++    cprintf("%d / %d free pages frames in the system\n",get_num_of_free_pages(),num_of_free_pages_after_kernel);
+   }
+ }
+diff --git a/proc.h b/proc.h
+index f8d364e..0b0ef9d 100644
+--- a/proc.h
++++ b/proc.h
+@@ -34,6 +34,29 @@ struct context {
+ 
+ enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+ 
++struct ram_page{
++    uint va;
++    uint access_counter;
++};
++
++struct swap_page{
++    uint page_vaddress;
++    uint placeOnFile;
++};
++
++struct pages_addr_fifo{
++    struct ram_page addr_fifo[16];
++    int head;
++    int tail;
++    int counter;
++};
++
++struct swap_pages{
++    struct swap_page pages[16];
++    int counter;
++};
++
++
+ // Per-process state
+ struct proc {
+   uint sz;                     // Size of process memory (bytes)
+@@ -51,6 +74,10 @@ struct proc {
+   char name[16];               // Process name (debugging)
+   //Swap file. must initiate with create swap file
+   struct file *swapFile;      //page file
++  struct swap_pages swapped_pages;
++  struct pages_addr_fifo psyc_pages_fifo;
++  int numOfPageFaults;
++  int numOfSwaps;
+ };
+ 
+ // Process memory is laid out contiguously, low addresses first:
+diff --git a/syscall.c b/syscall.c
+index ee85261..0d8f9da 100644
+--- a/syscall.c
++++ b/syscall.c
+@@ -103,6 +103,11 @@ extern int sys_unlink(void);
+ extern int sys_wait(void);
+ extern int sys_write(void);
+ extern int sys_uptime(void);
++extern int sys_getNumFreePages(void);
++extern int sys_getNumVirtPages(void);
++extern int sys_getNumPhysPages(void);
++extern int sys_getNumPTPages(void);
++extern int sys_printPsycAndSwapArrays(void);
+ 
+ static int (*syscalls[])(void) = {
+ [SYS_fork]    sys_fork,
+@@ -126,6 +131,11 @@ static int (*syscalls[])(void) = {
+ [SYS_link]    sys_link,
+ [SYS_mkdir]   sys_mkdir,
+ [SYS_close]   sys_close,
++[SYS_getNumFreePages] sys_getNumFreePages,
++[SYS_getNumVirtPages] sys_getNumVirtPages,
++[SYS_getNumPhysPages] sys_getNumPhysPages,
++[SYS_getNumPTPages] sys_getNumPTPages,
++[SYS_printPsycAndSwapArrays] sys_printPsycAndSwapArrays,
+ };
+ 
+ void
+diff --git a/syscall.h b/syscall.h
+index bc5f356..eb7af01 100644
+--- a/syscall.h
++++ b/syscall.h
+@@ -20,3 +20,8 @@
+ #define SYS_link   19
+ #define SYS_mkdir  20
+ #define SYS_close  21
++#define SYS_getNumFreePages 22
++#define SYS_getNumVirtPages 23
++#define SYS_getNumPhysPages 24
++#define SYS_getNumPTPages 25
++#define SYS_printPsycAndSwapArrays 26
+diff --git a/sysproc.c b/sysproc.c
+index 0686d29..1b2a4e9 100644
+--- a/sysproc.c
++++ b/sysproc.c
+@@ -89,3 +89,53 @@ sys_uptime(void)
+   release(&tickslock);
+   return xticks;
+ }
++
++int
++sys_getNumFreePages(void)
++{
++    return get_num_of_free_pages();
++}
++
++int
++sys_getNumVirtPages(void)
++{
++    return 0;
++}
++
++int
++sys_getNumPhysPages(void)
++{
++    return 0;
++}
++
++int
++sys_getNumPTPages(void)
++{
++    return 0;
++}
++int
++sys_printPsycAndSwapArrays(void)
++{
++  cprintf("************START PRINTING ARRAYS****************\n");
++  cprintf("*********printing swapped pages array***********\n");
++  for(int i = 0; i < MAX_SWAP_PAGES; i++){
++        cprintf("swap num %d is: %d\n", i, myproc()->swapped_pages.pages[i].page_vaddress);
++    }
++    cprintf("====================================\n");
++  cprintf("*********printing ram pages array***********\n");
++  for(int i = 0; i < MAX_SWAP_PAGES; i++){
++#if SELECTION!=NFUA && SELECTION!=LAPA
++        cprintf("psyc num %d is: %d\n", i, myproc()->psyc_pages_fifo.addr_fifo[i].va);
++#endif
++#if SELECTION==NFUA
++      cprintf("psyc num %d is: %d, counter=%d\n", i, myproc()->psyc_pages_fifo.addr_fifo[i].va,myproc()->psyc_pages_fifo.addr_fifo[i].access_counter);
++#endif
++#if SELECTION==LAPA
++      cprintf("psyc num %d is: %d, counter=0x%x\n", i, myproc()->psyc_pages_fifo.addr_fifo[i].va,myproc()->psyc_pages_fifo.addr_fifo[i].access_counter);
++#endif
++
++  }
++
++    cprintf("************END PRINTING ARRAYS****************\n");
++  return 0;
++}
+
+\ No newline at end of file
+diff --git a/trap.c b/trap.c
+index 41c66eb..0357c17 100644
+--- a/trap.c
++++ b/trap.c
+@@ -78,7 +78,19 @@ trap(struct trapframe *tf)
+     lapiceoi();
+     break;
+ 
+-  //PAGEBREAK: 13
++#if SELECTION!=NONE
++  case T_PGFLT:
++    myproc()->numOfPageFaults++;
++    update_counters();
++    if (handle_cow_page(rcr2()) == 0){
++        break;
++    }
++    if (bring_page_from_swapped(rcr2()) == 0) { //swap only if needed
++      break;
++    }
++#endif
++
++    //PAGEBREAK: 13
+   default:
+     if(myproc() == 0 || (tf->cs&3) == 0){
+       // In kernel, it must be our mistake.
+diff --git a/types.h b/types.h
+index e4adf64..bd1239b 100644
+--- a/types.h
++++ b/types.h
+@@ -2,3 +2,17 @@ typedef unsigned int   uint;
+ typedef unsigned short ushort;
+ typedef unsigned char  uchar;
+ typedef uint pde_t;
++
++#define MAX_PSYC_PAGES 16
++#define MAX_SWAP_PAGES 16
++#define MAX_TOTAL_PAGES 32
++
++#define NONE 0
++#define NFUA 1
++#define SCFIFO 2
++#define AQ 3
++#define LAPA 4
++
++
++#define FALSE 0
++#define TRUE 1
+diff --git a/user.h b/user.h
+index 4f99c52..53745df 100644
+--- a/user.h
++++ b/user.h
+@@ -23,6 +23,11 @@ int getpid(void);
+ char* sbrk(int);
+ int sleep(int);
+ int uptime(void);
++int getNumFreePages(void);
++int getNumVirtPages(void);
++int getNumPhysPages(void);
++int getNumPTPages(void);
++void printPsycAndSwapArrays(void);
+ 
+ // ulib.c
+ int stat(const char*, struct stat*);
+diff --git a/usertests.c b/usertests.c
+index a1e97e7..d689053 100644
+--- a/usertests.c
++++ b/usertests.c
+@@ -562,7 +562,7 @@ fourfiles(void)
+     while((n = read(fd, buf, sizeof(buf))) > 0){
+       for(j = 0; j < n; j++){
+         if(buf[j] != '0'+i){
+-          printf(1, "wrong char\n");
++          printf(1, "wrong char = %c, should be %c, fname = %s\n",buf[j],('0'+i),fname);
+           exit();
+         }
+       }
+@@ -1767,7 +1767,7 @@ main(int argc, char *argv[])
+   bigwrite();
+   bigargtest();
+   bsstest();
+-  sbrktest();
++  //sbrktest();
+   validatetest();
+ 
+   opentest();
+@@ -1779,7 +1779,7 @@ main(int argc, char *argv[])
+   exitiputtest();
+   iputtest();
+ 
+-  mem();
++  //mem();
+   pipe1();
+   preempt();
+   exitwait();
+diff --git a/usys.S b/usys.S
+index 8bfd8a1..24a4266 100644
+--- a/usys.S
++++ b/usys.S
+@@ -29,3 +29,8 @@ SYSCALL(getpid)
+ SYSCALL(sbrk)
+ SYSCALL(sleep)
+ SYSCALL(uptime)
++SYSCALL(getNumFreePages)
++SYSCALL(getNumVirtPages)
++SYSCALL(getNumPhysPages)
++SYSCALL(getNumPTPages)
++SYSCALL(printPsycAndSwapArrays)
+\ No newline at end of file
+diff --git a/vm.c b/vm.c
+index 7134cff..5daa327 100644
+--- a/vm.c
++++ b/vm.c
+@@ -9,6 +9,9 @@
+ 
+ extern char data[];  // defined by kernel.ld
+ pde_t *kpgdir;  // for use in scheduler()
++static char buffer[PGSIZE];
++static char buffer2[PGSIZE];
++int myCounterForDebug = 0;
+ 
+ // Set up CPU's kernel segment descriptors.
+ // Run once on entry on each CPU.
+@@ -216,6 +219,438 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
+   return 0;
+ }
+ 
++/////////////////////////////////////////////*paging algorithms*///////////////////////////////////////////////////////
++
++
++uint
++useNFUA(void){
++    struct proc* p = myproc();
++    uint lowest_access_counter = 0xFFFFFFFF;
++    int index_of_lowest_access_counter = 0;
++    for (int i = 0; i < MAX_PSYC_PAGES; i++) {
++        if (p->psyc_pages_fifo.addr_fifo[i].access_counter != -1 && p->psyc_pages_fifo.addr_fifo[i].access_counter < lowest_access_counter) {
++            lowest_access_counter = p->psyc_pages_fifo.addr_fifo[i].access_counter;
++            index_of_lowest_access_counter = i;
++        }
++    }
++    return (p->psyc_pages_fifo.addr_fifo[index_of_lowest_access_counter].va);
++}
++
++
++int
++checkOnesCount(uint access_counter){
++    int counter = 0;
++    while (access_counter > 0){
++        if (access_counter % 2 != 0){
++            counter++;
++        }
++        access_counter = (access_counter >> 1);
++    }
++    return counter;
++}
++
++uint
++useLAPA(void){
++    struct proc* p = myproc();
++    uint lowest_num_of_ones = 32;
++    int index_of_lowest_num_of_ones = 0;
++    for (int i = 0; i < MAX_PSYC_PAGES; i++) {
++        if (p->psyc_pages_fifo.addr_fifo[i].access_counter != -1 && checkOnesCount(p->psyc_pages_fifo.addr_fifo[i].access_counter) < lowest_num_of_ones) {
++            lowest_num_of_ones = checkOnesCount(p->psyc_pages_fifo.addr_fifo[i].access_counter);
++            index_of_lowest_num_of_ones = i;
++        }
++    }
++
++    return (p->psyc_pages_fifo.addr_fifo[index_of_lowest_num_of_ones].va);
++}
++
++uint
++useSCFIFO()
++{
++    struct proc* p = myproc();
++    pte_t *pte;
++    uint page_to_swap_vaddr;
++
++    while(1) {
++
++        page_to_swap_vaddr = p->psyc_pages_fifo.addr_fifo[p->psyc_pages_fifo.tail].va;
++
++        if ((pte = walkpgdir(myproc()->pgdir, (void *) page_to_swap_vaddr, 0)) == 0) {
++            panic("update Counters: pte should exist");
++        }
++        if (*pte & PTE_A) {
++            p->psyc_pages_fifo.tail++;
++            if(p->psyc_pages_fifo.tail > (MAX_PSYC_PAGES-1)) {
++                p->psyc_pages_fifo.tail = 0;
++            }
++            p->psyc_pages_fifo.head++;
++            if(p->psyc_pages_fifo.head > (MAX_PSYC_PAGES-1)) {
++                p->psyc_pages_fifo.head = 0;
++            }
++            *pte &= ~PTE_A;
++        }
++        else{
++            p->psyc_pages_fifo.tail++;
++            if(p->psyc_pages_fifo.tail > (MAX_PSYC_PAGES-1)) {
++                p->psyc_pages_fifo.tail = 0;
++            }
++            break;
++        }
++    }
++    return page_to_swap_vaddr;
++}
++
++
++
++uint
++use_AQ()
++{
++    uint page_to_swap_vaddr = myproc()->psyc_pages_fifo.addr_fifo[myproc()->psyc_pages_fifo.tail].va;
++    myproc()->psyc_pages_fifo.tail++;
++    if(myproc()->psyc_pages_fifo.tail > (MAX_PSYC_PAGES-1)) {
++        myproc()->psyc_pages_fifo.tail = 0;
++    }
++    return page_to_swap_vaddr;
++}
++
++
++
++
++
++
++////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
++
++void
++remove_va_from_psyc(uint va) {
++    for (int i = 0 ; i < MAX_PSYC_PAGES; i++) {
++        if (myproc()->psyc_pages_fifo.addr_fifo[i].va == va) {
++            myproc()->psyc_pages_fifo.addr_fifo[i].va = -1;
++            myproc()->psyc_pages_fifo.addr_fifo[i].access_counter = -1;
++            myproc()->psyc_pages_fifo.counter--;
++        }
++    }
++}
++void
++put_where_absent(uint va) {
++    int index = get_next_available_spot_in_psyc();
++    myproc()->psyc_pages_fifo.addr_fifo[index].va = va;
++    myproc()->psyc_pages_fifo.addr_fifo[index].access_counter = 0;
++    myproc()->psyc_pages_fifo.counter++;
++}
++
++
++uint
++getAndremoveFromFifo(void){
++    uint page_to_swap_vaddr = myproc()->psyc_pages_fifo.addr_fifo[myproc()->psyc_pages_fifo.tail].va;
++    myproc()->psyc_pages_fifo.addr_fifo[myproc()->psyc_pages_fifo.tail].va = -1;
++    myproc()->psyc_pages_fifo.addr_fifo[myproc()->psyc_pages_fifo.tail].access_counter = -1;
++    myproc()->psyc_pages_fifo.tail++;
++    if(myproc()->psyc_pages_fifo.tail > (MAX_PSYC_PAGES-1)) {
++        myproc()->psyc_pages_fifo.tail = 0;
++    }
++    myproc()->psyc_pages_fifo.counter--;
++    return page_to_swap_vaddr;
++}
++
++void
++addToFifo(uint va){
++    if (myproc()->psyc_pages_fifo.head == myproc()->psyc_pages_fifo.tail && myproc()->psyc_pages_fifo.counter > 0) {
++        panic("add to fifo failed, fifo is full");
++    }
++    myproc()->psyc_pages_fifo.addr_fifo[myproc()->psyc_pages_fifo.head].va = va;
++    myproc()->psyc_pages_fifo.addr_fifo[myproc()->psyc_pages_fifo.head].access_counter = 0;
++    myproc()->psyc_pages_fifo.head++;
++    if(myproc()->psyc_pages_fifo.head > (MAX_PSYC_PAGES-1)){
++        myproc()->psyc_pages_fifo.head = 0;
++    }
++    myproc()->psyc_pages_fifo.counter++;
++}
++
++
++uint
++remove_and_get_from_psyc_array() {
++    int va = 0;
++
++#if SELECTION==NFUA
++        va = useNFUA();
++    #endif
++    #if SELECTION==LAPA
++        va =  useLAPA();
++    #endif
++    #if SELECTION==SCFIFO
++        va = useSCFIFO();
++    #endif
++    #if SELECTION==AQ
++        va = use_AQ();
++    #endif
++    remove_va_from_psyc(va);
++    return va;
++}
++
++void
++add_to_psyc_array(uint va) {
++    #if SELECTION==NFUA
++        put_where_absent(va);
++    #endif
++    #if SELECTION==LAPA
++        put_where_absent(va);
++    #endif
++    #if SELECTION==SCFIFO
++        addToFifo(va);
++    #endif
++    #if SELECTION==AQ
++        addToFifo(va);
++    #endif
++}
++
++int bring_page_from_swapped(uint va) {
++    int i;
++    uint pa;
++    uint roundedVa = PGROUNDDOWN(va);
++
++    pte_t *pte = walkpgdir(myproc()->pgdir, (void *)roundedVa, 0);
++    pa = PTE_ADDR(*pte);
++
++    if(pte == 0)
++        panic("walkpgdir failed in bring_page_from_swapped");
++    if((*pte & PTE_PG) == 0){
++        return -1;
++    }
++
++    for (i = 0; i < MAX_SWAP_PAGES; i++) {
++        if (myproc()->swapped_pages.pages[i].page_vaddress == roundedVa) {
++            //found the needed page!
++            myproc()->swapped_pages.counter--;
++            readFromSwapFile(myproc(), buffer2, myproc()->swapped_pages.pages[i].placeOnFile, PGSIZE);
++            myproc()->swapped_pages.pages[i].page_vaddress = -1;
++            myproc()->swapped_pages.pages[i].placeOnFile = -1;
++            break;
++        }
++    }
++
++    allocuvm(myproc()->pgdir, roundedVa, roundedVa+PGSIZE);
++
++    //memove need the va of the kernel
++    pa = PTE_ADDR(*pte);
++    if(pa == 0)
++        panic("failed to get pa in bring_page_from_swapped");
++
++    memmove(P2V(pa), buffer2, PGSIZE);
++    memset(buffer2, 0, PGSIZE);
++
++    //clear PTE_PG and set PTE_P
++    *pte &= ~PTE_PG;
++    *pte |= PTE_P;
++
++    //flush TLB
++    //lcr3(V2P(myproc()->pgdir));  // switch to process's address space
++
++    return 0;
++}
++
++int get_next_available_spot_in_psyc(void){
++    for (int i = 0; i < MAX_PSYC_PAGES; i++){
++        if(myproc()->psyc_pages_fifo.addr_fifo[i].va == -1){
++            return i;
++        }
++    }
++    panic("psyc array is full, can't find available spot");
++}
++
++int get_next_available_spot(void){
++  for (int i = 0; i < MAX_SWAP_PAGES; i++){
++    if(myproc()->swapped_pages.pages[i].page_vaddress == -1){
++       return i;
++    }
++  }
++  panic("swap array is full, can't find available spot");
++}
++
++int swap_this_page(uint va){
++
++    uint pa;
++    struct proc* cur_proc = myproc();
++
++    pte_t *pte = walkpgdir(cur_proc->pgdir, (void *)va, 0);
++    if (pte == 0) {
++        //panic("walkpgdir failed in swap_this_page\n");
++        return -1;
++    }
++    pa = PTE_ADDR(*pte);
++    if(pa == 0)
++        panic("failed getting pa in swap_this_page");
++
++
++    //create struct swap_page element
++    struct swap_page new_swapped_page;
++    new_swapped_page.page_vaddress = va;
++
++    //add to the swapped array
++    int spot = get_next_available_spot();
++    new_swapped_page.placeOnFile = spot*PGSIZE;
++    cur_proc->swapped_pages.pages[spot] = new_swapped_page;
++    cur_proc->swapped_pages.counter++;
++
++    //write page to swap file
++    memmove(buffer, P2V(pa), PGSIZE);
++    writeToSwapFile(cur_proc, buffer, new_swapped_page.placeOnFile, PGSIZE);
++    memset(buffer, 0, PGSIZE);
++
++    //clear PTE_P and set PTE_PG
++    deallocuvm(cur_proc->pgdir, va+PGSIZE, va);
++    *pte &= ~PTE_P;
++    *pte |= PTE_PG;
++//    *pte &= ~PTE_COW;  //clear cow bit if needed
++//    *pte |= PTE_W;    //set write bit
++
++    //flush TLB
++    lcr3(V2P(cur_proc->pgdir));  // switch to process's address space
++
++    //    for(int i = 0; i < MAX_SWAP_PAGES; i++){
++//        cprintf("swap num %d is: %d\n", i, myproc()->swapped_pages.pages[i].page_vaddress);
++//    }
++//    for(int i = 0; i < MAX_SWAP_PAGES; i++){
++//        cprintf("psyc num %d is: %d\n", i, myproc()->psyc_pages_fifo.addr_fifo[i]);
++//    }
++    myproc()->numOfSwaps++;
++    return 0;
++}
++
++
++int handle_cow_page(uint va) {
++
++    int is_swapped = 0;
++    char *table_mem;
++    char *mem;
++    uint pa;
++    uint second_table_va;
++    uint second_table_pa;
++    pde_t *pde;
++    pde_t *pgdir = myproc()->pgdir;
++    int reference_count;
++    int reference_count_of_pa;
++    int flag_for_table_pa = 0;
++    int flag_for_page_pa = 0;
++
++    uint roundedVa = PGROUNDDOWN(va);
++
++    pte_t *pte = walkpgdir(pgdir, (void *) roundedVa, 0);
++    if (pte == 0) {
++        //panic("walkpgdir failed in handle_cow_page\n");
++        return -1;
++    }
++    if ((*pte & PTE_COW) == 0) {
++        return -1;
++    }
++
++    if((*pte & PTE_PG) > 0){  //check if the page is swapped
++        is_swapped = 1;       //handle swap page
++    }
++
++    //update reference count for 2nd level pages
++    pde = &pgdir[PDX(roundedVa)];  //get a pointer to the pte in the first level table
++
++    if(*pde & PTE_P) {
++        second_table_pa = PTE_ADDR(*pde);
++        //reference_count = decrease_reference_count_and_get((void *) second_table_pa);
++        reference_count = get_ref_count((void *)second_table_pa);
++
++        //last copy should be his copy now, no need to create a new one
++        if (reference_count == 1) {
++            //increase_reference_count_and_get((void *) second_table_pa); //refernce count should be 1
++        }
++
++        //copy the second page table
++        else {
++            flag_for_table_pa = 1;
++            second_table_va = (uint) P2V(second_table_pa); //get the address of the start of the second table
++            if ((table_mem = kalloc()) == 0)   //allocate a new second table
++                panic("kalloc failed in handle_cow_page\n");
++            memset(table_mem, 0, PGSIZE);
++            memmove(table_mem, (char *) second_table_va, PGSIZE); //copy old second table to the new one
++            *pde = V2P(PTE_ADDR(table_mem)) | PTE_P | PTE_W | PTE_U;  //change the pointer of the first table
++
++
++            //flush TLB
++            lcr3(V2P(myproc()->pgdir));  // switch to process's address space
++        }
++
++        //if swapped, work is done, no need to copy the pa, would get second page fault
++        if(is_swapped){
++            //cprintf("i'm in handle cow\n");
++            pte = walkpgdir(pgdir, (void *) roundedVa, 0);
++            *pte &= ~PTE_COW;  //clear cow bit
++            *pte |= PTE_W;    //set write bit
++            //flush TLB
++            lcr3(V2P(myproc()->pgdir));  // switch to process's address space
++
++            if (flag_for_table_pa)
++                kfree(P2V(second_table_pa));
++
++            return 0;
++        }
++
++        pa = PTE_ADDR(*pte);  //get the shared pa page
++        if (pa == 0)
++            panic("failed getting pa in handle_cow_page");
++
++        //decrease refernce bit
++        //reference_count_of_pa = decrease_reference_count_and_get((void *)pa);
++        reference_count_of_pa = get_ref_count((void *)pa);
++
++        //we don't need to copy the pa
++        if (reference_count_of_pa == 1){
++           //increase_reference_count_and_get((void *)pa); //should be 1
++            pte = walkpgdir(pgdir, (void *) roundedVa, 0);
++            *pte &= ~PTE_COW;  //clear cow bit
++            *pte |= PTE_W;    //set write bit
++
++            if (flag_for_table_pa)
++                kfree(P2V(second_table_pa));
++
++            //flush TLB
++            lcr3(V2P(myproc()->pgdir));  // switch to process's address space
++
++            return 0;
++        }
++
++        //we need to copy the pa also
++        else {
++            if ((mem = kalloc()) == 0)   //allocate a new pa
++                panic("kalloc failed in handle_cow_page\n");
++            memset(mem, 0, PGSIZE);
++            memmove(mem, (char *) P2V(pa), PGSIZE); //copy old pa page to the new one
++            pte = walkpgdir(pgdir, (void *) roundedVa, 0);
++            *pte = 0;
++
++            if (mappages(pgdir, (char *) roundedVa, PGSIZE, V2P(mem), PTE_W | PTE_U) < 0) {
++                panic("mappages failed in handle_cow_page\n");
++                //deallocuvm(pgdir, newsz, oldsz);
++                //kfree(mem);
++                //return 0;
++            }
++            flag_for_page_pa = 1;
++        }
++    }
++    // second table should be present if cow bit is set
++    else{
++        panic("second level table should be present here in handle_cow_page");
++    }
++
++    if (flag_for_table_pa)
++        kfree(P2V(second_table_pa));
++    if(flag_for_page_pa)
++        kfree(P2V(pa));
++    //flush TLB
++    lcr3(V2P(myproc()->pgdir));  // switch to process's address space
++
++
++    return 0;
++}
++
++
++
++
+ // Allocate page tables and physical memory to grow process from oldsz to
+ // newsz, which need not be page aligned.  Returns new size or 0 on error.
+ int
+@@ -231,6 +666,23 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
+ 
+   a = PGROUNDUP(oldsz);
+   for(; a < newsz; a += PGSIZE){
++
++#if SELECTION!=NONE
++      //check if we reached MAX_TOTAL_PAGES (32)
++    if((myproc()->psyc_pages_fifo.counter + myproc()->swapped_pages.counter >= MAX_TOTAL_PAGES) && (myproc()->pid > 2)){
++      panic("can't create more pages, reached MAX_TOTAL_PAGES");
++    }
++
++    //check if we reached MAX_PSYC_PAGES (16), if does swap a page to make space for a new one
++    if((myproc()->psyc_pages_fifo.counter >= MAX_PSYC_PAGES) &&  (myproc()->pid > 2)) {
++        update_counters();
++      //get page to swap vaddr
++      uint page_to_swap_vaddr = remove_and_get_from_psyc_array();
++      //swap the relevant page
++      swap_this_page(page_to_swap_vaddr);
++     }
++#endif
++
+     mem = kalloc();
+     if(mem == 0){
+       cprintf("allocuvm out of memory\n");
+@@ -244,6 +696,13 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
+       kfree(mem);
+       return 0;
+     }
++
++#if SELECTION!=NONE
++    if (myproc()->pid > 2) {
++        //add psyc page to fifo
++        add_to_psyc_array((uint) a);
++    }
++#endif
+   }
+   return newsz;
+ }
+@@ -272,6 +731,38 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
+         panic("kfree");
+       char *v = P2V(pa);
+       kfree(v);
++
++#if SELECTION!=NONE
++        //remove page from fifo
++      if ((myproc()->pid > 2) && (pgdir == myproc()->pgdir)) {
++          for (int i = 0; i < MAX_PSYC_PAGES; i++) {
++              if (myproc()->psyc_pages_fifo.addr_fifo[i].va == a) {
++                  myproc()->psyc_pages_fifo.counter--;
++                  if (i != myproc()->psyc_pages_fifo.tail) {
++                      //shift fifo to remove blank space
++                      int j = i + 1;
++                      while (i != myproc()->psyc_pages_fifo.tail) {
++                          if (j > MAX_PSYC_PAGES - 1)
++                              j = 0;
++                          if (i > MAX_PSYC_PAGES - 1)
++                              i = 0;
++                          myproc()->psyc_pages_fifo.addr_fifo[i].va = myproc()->psyc_pages_fifo.addr_fifo[j].va;
++                          myproc()->psyc_pages_fifo.addr_fifo[i].access_counter = myproc()->psyc_pages_fifo.addr_fifo[j].access_counter;
++                          i++;
++                          j++;
++                      }
++                  }
++                  myproc()->psyc_pages_fifo.addr_fifo[myproc()->psyc_pages_fifo.tail].va = -1;
++                  myproc()->psyc_pages_fifo.addr_fifo[myproc()->psyc_pages_fifo.tail].access_counter = -1;
++                  myproc()->psyc_pages_fifo.tail++;
++                  if (myproc()->psyc_pages_fifo.tail > MAX_PSYC_PAGES - 1) {
++                      myproc()->psyc_pages_fifo.tail = 0;
++                  }
++                  break;
++              }
++          }
++      }
++#endif
+       *pte = 0;
+     }
+   }
+@@ -295,6 +786,7 @@ freevm(pde_t *pgdir)
+     }
+   }
+   kfree((char*)pgdir);
++
+ }
+ 
+ // Clear PTE_U on a page. Used to create an inaccessible
+@@ -317,27 +809,96 @@ copyuvm(pde_t *pgdir, uint sz)
+ {
+   pde_t *d;
+   pte_t *pte;
++
+   uint pa, i, flags;
+   char *mem;
+ 
+-  if((d = setupkvm()) == 0)
+-    return 0;
+-  for(i = 0; i < sz; i += PGSIZE){
+-    if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
+-      panic("copyuvm: pte should exist");
+-    if(!(*pte & PTE_P))
+-      panic("copyuvm: page not present");
+-    pa = PTE_ADDR(*pte);
+-    flags = PTE_FLAGS(*pte);
+-    if((mem = kalloc()) == 0)
+-      goto bad;
+-    memmove(mem, (char*)P2V(pa), PGSIZE);
+-    if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
+-      kfree(mem);
+-      goto bad;
++#if SELECTION!=NONE
++    pde_t *pde;
++
++  if(myproc()->pid > 2) {
++    //cprintf("started copyuvm, counter = %d\n", get_num_of_free_pages());
++      if((d = (pde_t*)kalloc()) == 0) {
++          return 0;
++      }
++      memset(d, 0, PGSIZE);
++      //copy pgdir
++      memmove(d, pgdir, PGSIZE);
++      //update reference count for 2nd level pages
++      for(int i = 0; i < (PGSIZE/4); i++){
++          pde = &pgdir[i];
++          if(*pde & PTE_P) {
++              increase_reference_count_and_get((void *)PTE_ADDR(*pde));
++          }
++      }
++  }
++  else{
++#endif
++      if((d = setupkvm()) == 0) {
++          return 0;
++      }
++#if SELECTION!=NONE
+     }
++#endif
++
++    for(i = 0; i < sz; i += PGSIZE){
++
++    if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0) {
++        panic("copyuvm: pte should exist");
++    }
++
++#if SELECTION!=NONE
++    if(myproc()->pid > 2) {
++        //set the COW bit
++        pte_t *s_pte = walkpgdir(d, (void *) i, 0);
++        if (s_pte == 0) {
++            panic("walkpgdir failed in copyuvm");
++        }
++
++        if ((*pte & PTE_PG) > 0) {
++            *pte &= ~PTE_W;
++            *pte |= PTE_COW;
++            //flush TLB
++            lcr3(V2P(d));
++            continue;
++        }
++
++        if ((*pte & PTE_W) > 0) {
++            *pte &= ~PTE_W;
++            *pte |= PTE_COW;
++            //flush TLB
++            lcr3(V2P(d));
++        }
++    }
++#endif
++
++      if(!(*pte & PTE_P)) {
++          panic("copyuvm: page not present");
++      }
++
++      pa = PTE_ADDR(*pte);
++      flags = PTE_FLAGS(*pte);
++
++#if SELECTION!=NONE
++    if(myproc()->pid > 2) {
++          increase_reference_count_and_get((void *) pa);
++    }
++      else {
++#endif
++          if((mem = kalloc()) == 0)
++              goto bad;
++          memmove(mem, (char*)P2V(pa), PGSIZE);
++          if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
++              kfree(mem);
++              goto bad;
++          }
++
++#if SELECTION!=NONE
++      }
++#endif
+   }
+-  return d;
++    //cprintf("finished copyuvm, counter = %d\n", get_num_of_free_pages());
++    return d;
+ 
+ bad:
+   freevm(d);
+@@ -392,3 +953,65 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
+ //PAGEBREAK!
+ // Blank page.
+ 
++void
++update_counters(){
++    pte_t *pte;
++    pde_t *pgdir = myproc()->pgdir;
++    struct proc* my_proc = myproc();
++    #if SELECTION!=AQ
++        for (int i = 0; i < MAX_PSYC_PAGES; i++) {
++            if(my_proc->psyc_pages_fifo.addr_fifo[i].va != -1) {
++                if((pte = walkpgdir(pgdir, (void *) (my_proc->psyc_pages_fifo.addr_fifo[i].va), 0)) == 0) {
++                    panic("update Counters: pte should exist");
++                }
++                my_proc->psyc_pages_fifo.addr_fifo[i].access_counter = (my_proc->psyc_pages_fifo.addr_fifo[i].access_counter >> 1);
++                if (*pte & PTE_A) {
++                    my_proc->psyc_pages_fifo.addr_fifo[i].access_counter |= 0x80000000;
++                    *pte &= ~PTE_A;
++                }
++            }
++        }
++    #endif
++    #if SELECTION==AQ
++        uint va;
++        uint next_va;
++        pte_t *next_pte;
++        int tail = my_proc->psyc_pages_fifo.tail;
++        //int head = my_proc->psyc_pages_fifo.head;
++        int numOfElem = my_proc->psyc_pages_fifo.counter;
++        int first_index;
++        int second_index;
++
++        while (numOfElem > 1){
++            va = my_proc->psyc_pages_fifo.addr_fifo[tail].va;
++            first_index = tail;
++            numOfElem--;
++            tail++;
++            if (tail > MAX_PSYC_PAGES-1)
++                tail = 0;
++
++            next_va = my_proc->psyc_pages_fifo.addr_fifo[tail].va;
++            second_index = tail;
++            numOfElem--;
++            tail++;
++            if (tail > MAX_PSYC_PAGES-1)
++                tail = 0;
++
++            if((pte = walkpgdir(pgdir, (void *)va, 0)) == 0) {
++                panic("update Counters: pte should exist");
++            }
++            if((next_pte = walkpgdir(pgdir, (void *)next_va, 0)) == 0) {
++                panic("update Counters: pte should exist");
++            }
++
++            if (((*pte & PTE_A) > 0) && ((*next_pte & PTE_A) == 0)){
++                *pte &= ~PTE_A;
++                my_proc->psyc_pages_fifo.addr_fifo[first_index].va = next_va;
++                my_proc->psyc_pages_fifo.addr_fifo[second_index].va = va;
++            }
++        }
++
++
++    #endif
++
++}
+\ No newline at end of file
