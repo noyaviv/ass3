@@ -382,7 +382,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
             printf("pte is not valid \n"); //TODO: delete 
           }
         } 
-        init_free_ram_page(p->pagetable, a, (uint64)mem, free_ram_page_pa);     
+        init_free_ram_page(myproc()->pagetable, a, (uint64)mem, free_ram_page_pa);     
       }
     }
     else{
