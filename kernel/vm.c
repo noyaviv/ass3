@@ -147,8 +147,10 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
   for(;;){
     if((pte = walk(pagetable, a, 1)) == 0)
       return -1;
-    if(*pte & PTE_V)
+    if(*pte & PTE_V){
+      printf("remap from mappages");
       panic("remap");
+    }
     *pte = PA2PTE(pa) | perm | PTE_V;
     if(a == last)
       break;
@@ -291,11 +293,11 @@ swap (void){
   if((pte = walk(p->pagetable, a, 1)) == 0)
       return -1;
   uint pa_of_mm_va = PTE2PA(*pte);
-
+  //memset((void *)PA2VA(pa), 0, PGSIZE);//Todo: pa or va?
   *pte |= PTE_PG; //page is on disc
   *pte &= ~PTE_V; //page is not valid
   // lcr3(V2P(myproc()->pgdir)); //TODO check: maybe needed for TLB maintainess
-
+  
   return pa_of_mm_va; //this physical addres is available now
 }
 
