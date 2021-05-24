@@ -338,21 +338,21 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
   if(newsz < oldsz)
     return oldsz;
 
-  oldsz = PGROUNDUP(oldsz);
+  a = PGROUNDUP(oldsz);
   // TODO tomorrow: 1.allocuvm of moshe roy
   //                2. panic
-  for(a = oldsz; a < newsz; a += PGSIZE){
+  for(; a < newsz; a += PGSIZE){
     // // task 1.1
     if(myproc()->pid >=3){
       free_ram_page_pa = find_free_page_in_ram(); 
       if(free_ram_page_pa == -1){ //no free ram page
         free_ram_page_pa = swap();
         if (free_ram_page_pa == -1) {
-          cprintf("error: process %d needs more than 32 page, exits...", myproc()->pid);
+          printf("error: process %d needs more than 32 page, exits...", myproc()->pid);
           exit(-1);   
         }
       }
-      find_and_init_page(free_ram_page_pa, (char*)a); 
+      find_and_init_page(free_ram_page_pa, a); 
       // TODO call function to swap pages
     }
 
