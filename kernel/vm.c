@@ -290,7 +290,7 @@ swap (void){
   
   if((pte = walk(p->pagetable, a, 1)) == 0)
       return -1;
-  uint pa_of_mm_va = PTE2PA(pte);
+  uint pa_of_mm_va = PTE2PA(*pte);
 
   *pte |= PTE_PG; //page is on disc
   *pte &= ~PTE_V; //page is not valid
