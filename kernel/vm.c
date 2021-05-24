@@ -349,7 +349,9 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
   for(; a < newsz; a += PGSIZE){
     // // task 1.1
     if(myproc()->pid >=3){
+      printf("**1** \n"); //TODO: delete
       free_ram_page_pa = find_free_page_in_ram(); 
+      printf("free ram page pysc adrr %d \n",free_ram_page_pa ); //TODO: delete
       if(free_ram_page_pa == -1){ //no free ram page
         printf("calling swap from uvmalloc \n"); //TODO: delete
         free_ram_page_pa = swap();
