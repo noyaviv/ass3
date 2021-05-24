@@ -144,7 +144,7 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 
   a = PGROUNDDOWN(va);
   if (a!=va)
-    printf("va is not aligned \n") //TODO: delete 
+    printf("va is not aligned \n"); //TODO: delete 
   last = PGROUNDDOWN(va + size - 1);
   for(;;){
     if((pte = walk(pagetable, a, 1)) == 0)
