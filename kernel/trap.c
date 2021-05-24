@@ -75,10 +75,7 @@ usertrap(void)
     // 15 Store/AMO page fault
     // TODO call function swapped
   }
-
-
-
-  if(r_scause() == 8){
+  else if(r_scause() == 8){
     // 8 is Environment call
     // system call
 
