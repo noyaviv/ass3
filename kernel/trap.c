@@ -37,6 +37,7 @@ void
 usertrap(void)
 {
   int which_dev = 0;
+  uint64 pa = -1; 
   uint64 va =r_stval();    //task 1.1
   uint64 align_va = PGROUNDDOWN(va); //task 1.1
   if((r_sstatus() & SSTATUS_SPP) != 0)
@@ -56,8 +57,14 @@ usertrap(void)
   if(r_scause() == 13 || r_scause() == 15){
     // 13 is Load page fault
     // 15 Store/AMO page fault  
-    
-    uint64 pa = swap();
+    //make sure there are no free pages in ram mem
+    if((pa = find_free_page_in_ram) == -1)
+      //page out operation
+      pa = swap();
+    //in case the page out didn't work for some reason
+    if (pa == -1)
+      printf("ram memory: somthing's wrong from usertrap"); 
+    //init the page in ram mem, that couse the page fualt
     find_and_init_page(pa, align_va);
     // 13 is Load page fault
     // 15 Store/AMO page fault

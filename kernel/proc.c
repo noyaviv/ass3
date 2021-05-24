@@ -127,7 +127,7 @@ found:
 
   // pid 1 is the process of the shell, pid 2 is userinit
   if (p->pid>=3){
-    printf("process with pid %d is now creatinf swap file", p->pid);
+    //printf("process with pid %d is now creatinf swap file", p->pid);
     release(&p->lock); 
     createSwapFile(p);
     acquire(&p->lock); 

@@ -182,6 +182,7 @@ int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
 uint64          swap (void);                        //task 1.1
 int             find_and_init_page(uint64, uint64); //task 1.1
+uint64          find_free_page_in_ram(void);        //task 1.1
 
 // plic.c
 void            plicinit(void);

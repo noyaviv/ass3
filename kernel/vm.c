@@ -215,21 +215,26 @@ uvminit(pagetable_t pagetable, uchar *src, uint sz)
 }
 
 
-// task 1.1 
-// DEFAULT paging strategy
+// task 1 
 
-// +uint
-// +getAndremoveFromFifo(void){
-// +    uint page_to_swap_vaddr = myproc()->psyc_pages_fifo.addr_fifo[myproc()->psyc_pages_fifo.tail].va;
-// +    myproc()->psyc_pages_fifo.addr_fifo[myproc()->psyc_pages_fifo.tail].va = -1;
-// +    myproc()->psyc_pages_fifo.addr_fifo[myproc()->psyc_pages_fifo.tail].access_counter = -1;
-// +    myproc()->psyc_pages_fifo.tail++;
-// +    if(myproc()->psyc_pages_fifo.tail > (MAX_PSYC_PAGES-1)) {
-// +        myproc()->psyc_pages_fifo.tail = 0;
-// +    }
-// +    myproc()->psyc_pages_fifo.counter--;
-// +    return page_to_swap_vaddr;
-// +}
+//check if there is a free page in ram mem, of so, return it's PSYC addr
+uint64
+find_free_page_in_ram(void){
+  uint free_index=0;
+  struct proc *p =  myproc();
+  while(free_index<16){
+    //finidng free page in swap file memory
+    if(p->ram_pages.pages[free_index].virtual_address == -1)
+      return walkaddr(p->pagetable, p->ram_pages.pages[free_index].virtual_address);
+    else
+      free_index++;
+  }
+  if(free_index > 15){
+    //proc has a MAX_PSYC_PAGES pages
+    panic("ram memory: somthing's wrong");
+  }
+  return -1;
+}
 
 uint64
 find_occupied_page_in_ram(void){
@@ -244,7 +249,7 @@ find_occupied_page_in_ram(void){
   }
   if(occupied_index > 15){
     //proc has a MAX_PSYC_PAGES pages
-    panic("ram memory: somthing's wrong");
+    panic("ram memory: somthing's wrong from find occupied page");
   }
   return -1;
 }
