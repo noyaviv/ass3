@@ -58,7 +58,8 @@ usertrap(void)
     // 13 is Load page fault
     // 15 Store/AMO page fault  
     //make sure there are no free pages in ram mem
-    if((pa = find_free_page_in_ram) == -1)
+    pa = find_free_page_in_ram;
+    if(pa  == -1)
       //page out operation
       pa = swap();
     //in case the page out didn't work for some reason
