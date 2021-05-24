@@ -59,12 +59,14 @@ usertrap(void)
     // 15 Store/AMO page fault  
     //make sure there are no free pages in ram mem
     pa = find_free_page_in_ram;
-    if(pa  == -1)
+    if(pa  == -1){
       //page out operation
       pa = swap();
+    }
     //in case the page out didn't work for some reason
-    if (pa == -1)
+    if (pa == -1){
       printf("ram memory: somthing's wrong from usertrap"); 
+    }
     //init the page in ram mem, that couse the page fualt
     find_and_init_page(pa, align_va);
     // 13 is Load page fault
