@@ -74,7 +74,7 @@ usertrap(void)
     // 13 is Load page fault
     // 15 Store/AMO page fault
     // TODO call function swapped
-    usertrapret();
+    //usertrapret();
     return;
   }
   
