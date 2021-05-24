@@ -55,7 +55,7 @@ usertrap(void)
   // TODO maybe other place check with others
   // task 1.1
   if(r_scause() == 13 || r_scause() == 15){
-    printf("*****swiping pages*****"); 
+    //printf("*****swiping pages*****"); 
     // 13 is Load page fault
     // 15 Store/AMO page fault  
     //make sure there are no free pages in ram mem
@@ -74,8 +74,11 @@ usertrap(void)
     // 13 is Load page fault
     // 15 Store/AMO page fault
     // TODO call function swapped
+    usertrapret();
+    return;
   }
-  else if(r_scause() == 8){
+  
+  if(r_scause() == 8){
     // 8 is Environment call
     // system call
 
