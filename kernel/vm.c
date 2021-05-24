@@ -333,6 +333,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 {
   char *mem;
   uint64 a;
+  uint64 free_pa = -1; 
 
   if(newsz < oldsz)
     return oldsz;
@@ -341,11 +342,11 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
   // TODO tomorrow: 1.allocuvm of moshe roy
   //                2. panic
   for(a = oldsz; a < newsz; a += PGSIZE){
+    printf("I'm in uvmalloc"); 
     // // task 1.1
-    // if (myproc()->pid >=3 && myproc()->ram_pages.page_counter >= MAX_PSYC_PAGES ){
-    //   // TODO call function to swap pages
-
-
+    if(myproc()->pid >=3){
+      // TODO call function to swap pages
+    }
 
     // }
     // // end task 1.1
@@ -354,6 +355,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
       uvmdealloc(pagetable, a, oldsz);
       return 0;
     }
+    
     memset(mem, 0, PGSIZE);
     if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
       kfree(mem);
