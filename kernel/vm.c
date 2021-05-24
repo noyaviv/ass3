@@ -221,14 +221,14 @@ uvminit(pagetable_t pagetable, uchar *src, uint sz)
 // task 1 
 
 //check if there is a free page in ram mem, of so, return it's PSYC addr
-uint64
+uint
 find_free_page_in_ram(void){
   uint free_index=0;
   struct proc *p =  myproc();
   while(free_index<16){
     //finidng free page in swap file memory
     if(p->ram_pages.pages[free_index].virtual_address == -1)
-      return walkaddr(p->pagetable, p->ram_pages.pages[free_index].virtual_address);
+      return free_index; 
     else
       free_index++;
   }
@@ -339,7 +339,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 
   if(newsz >= KERNBASE)
     return 0;
-    
+
   if(newsz < oldsz)
     return oldsz;
 
@@ -366,7 +366,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
         printf("in uvmalloc \n"); //TODO: delete 
         printf("va is %d", a); //TODO: delete
         pte_t *pte;
-        if((pte = walk(p->pagetable, a, 1)) == 0){
+        if((pte = walk(myproc()->pagetable, a, 1)) == 0){
           if (*pte & PTE_V){
             printf("pte is not valid \n"); //TODO: delete 
           }
@@ -377,12 +377,12 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
       else{
         printf("va is %d", a); //TODO: delete
         pte_t *pte;
-        if((pte = walk(p->pagetable, a, 1)) == 0){
+        if((pte = walk(myproc()->pagetable, a, 1)) == 0){
           if (*pte & PTE_V){
             printf("pte is not valid \n"); //TODO: delete 
           }
         } 
-        init_free_ram_page(p->pagetable, a, (uint64)mem, index);     
+        init_free_ram_page(p->pagetable, a, (uint64)mem, free_ram_page_pa);     
       }
     }
     else{
