@@ -143,6 +143,8 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
   pte_t *pte;
 
   a = PGROUNDDOWN(va);
+  if (a!=va)
+    printf("va is not aligned \n") //TODO: delete 
   last = PGROUNDDOWN(va + size - 1);
   for(;;){
     if((pte = walk(pagetable, a, 1)) == 0)
@@ -349,6 +351,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     if(myproc()->pid >=3){
       free_ram_page_pa = find_free_page_in_ram(); 
       if(free_ram_page_pa == -1){ //no free ram page
+        printf("calling swap from uvmalloc \n"); //TODO: delete
         free_ram_page_pa = swap();
         if (free_ram_page_pa == -1) {
           printf("error: process %d needs more than 32 page, exits...", myproc()->pid);
