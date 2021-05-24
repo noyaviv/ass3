@@ -303,8 +303,8 @@ swap (void){
 }
 
 int
-init_free_ram_page(pagetable_t pagetable, uint64 va, uint64 pa, int index){
-  struct proc *p=myproc();
+init_free_ram_page(pagetable_t pagetable, uint64 va, uint64 pa , int index){
+  struct proc *p = myproc();
   printf("panic from init_free_ram_page \n"); //TODO :delete
   if(mappages(pagetable, va, PGSIZE, pa, PTE_W|PTE_U) < 0){
     uvmdealloc(pagetable, PGSIZE, PGSIZE);
@@ -361,6 +361,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
         }
       }
       printf("in uvmalloc \n"); //TODO: delete 
+      printf("va is %d", a); //TODO: delete 
       find_and_init_page(free_ram_page_pa, a); 
       // TODO call function to swap pages
     }
