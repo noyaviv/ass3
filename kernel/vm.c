@@ -148,7 +148,6 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     if((pte = walk(pagetable, a, 1)) == 0)
       return -1;
     if(*pte & PTE_V){
-      printf("remap from mappages");
       panic("remap");
     }
     *pte = PA2PTE(pa) | perm | PTE_V;
@@ -304,6 +303,7 @@ swap (void){
 int
 init_free_ram_page(pagetable_t pagetable, uint64 va, uint64 pa, int index){
   struct proc *p=myproc();
+  printf("panic from init_free_ram_page \n"); //TODO :delete
   if(mappages(pagetable, va, PGSIZE, pa, PTE_W|PTE_U) < 0){
     uvmdealloc(pagetable, PGSIZE, PGSIZE);
     kfree((void*)pa); //Free the page of physical memory
@@ -321,7 +321,7 @@ find_and_init_page(uint64 pa, uint64 va){
   int index =0;
   //finidng free page in main memory
   while(index<MAX_PSYC_PAGES){
-    if(p->ram_pages.pages[index].virtual_address==-1){
+    if(p->ram_pages.pages[index].virtual_address == -1){
       return init_free_ram_page(p->pagetable, va, pa, index);
     }
     index++;
@@ -355,6 +355,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
           exit(-1);   
         }
       }
+      printf("in uvmalloc \n"); //TODO: delete 
       find_and_init_page(free_ram_page_pa, a); 
       // TODO call function to swap pages
     }

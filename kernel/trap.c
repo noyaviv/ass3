@@ -69,6 +69,7 @@ usertrap(void)
       printf("ram memory: somthing's wrong from usertrap"); 
     }
     //init the page in ram mem, that couse the page fualt
+    printf("in uvmalloc \n");  //TODO delete
     find_and_init_page(pa, align_va);
     // 13 is Load page fault
     // 15 Store/AMO page fault
