@@ -282,7 +282,7 @@ swap (void){
   p->swapped_pages.pages[sp_index].virtual_address=mm_va;
   p->ram_pages.pages[occupied_index].virtual_address=-1; //this index is no more occupied
   
-  uint64 physical_address= walkaddr(p->pagetable, mm_va); //exchange virtual address to physical address
+  //uint64 physical_address= walkaddr(p->pagetable, mm_va); //exchange virtual address to physical address
   // kfree(*physical_address); //Free the page of physical memory
   // update pte flags
   pte_t *pte;
@@ -290,12 +290,13 @@ swap (void){
   
   if((pte = walk(p->pagetable, a, 1)) == 0)
       return -1;
-  *pte= PA2PTE(physical_address);
+  uint pa_of_mm_va = PTE2PA(pte);
+
   *pte |= PTE_PG; //page is on disc
   *pte &= ~PTE_V; //page is not valid
   // lcr3(V2P(myproc()->pgdir)); //TODO check: maybe needed for TLB maintainess
 
-  return physical_address; //this physical addres is available now
+  return pa_of_mm_va; //this physical addres is available now
 }
 
 int
