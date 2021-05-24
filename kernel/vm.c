@@ -232,10 +232,7 @@ find_free_page_in_ram(void){
     else
       free_index++;
   }
-  if(free_index > 15){
-    //proc has a MAX_PSYC_PAGES pages
-    panic("ram memory: somthing's wrong");
-  }
+
   return -1;
 }
 
@@ -340,16 +337,23 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
   uint64 a;
   uint64 free_ram_page_pa = -1; 
 
+  if(newsz >= KERNBASE)
+    return 0;
+    
   if(newsz < oldsz)
     return oldsz;
 
   a = PGROUNDUP(oldsz);
-  // TODO tomorrow: 1.allocuvm of moshe roy
-  //                2. panic
+
   for(; a < newsz; a += PGSIZE){
+    mem = kalloc();
+    if(mem == 0){
+      uvmdealloc(pagetable, a, oldsz);
+      return 0;
+    }
+    memset(mem, 0, PGSIZE);
     // // task 1.1
     if(myproc()->pid >=3){
-      printf("**1** \n"); //TODO: delete
       free_ram_page_pa = find_free_page_in_ram(); 
       printf("free ram page pysc adrr %d \n",free_ram_page_pa ); //TODO: delete
       if(free_ram_page_pa == -1){ //no free ram page
@@ -359,33 +363,35 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
           printf("error: process %d needs more than 32 page, exits...", myproc()->pid);
           exit(-1);   
         }
+        printf("in uvmalloc \n"); //TODO: delete 
+        printf("va is %d", a); //TODO: delete
+        pte_t *pte;
+        if((pte = walk(p->pagetable, a, 1)) == 0){
+          if (*pte & PTE_V){
+            printf("pte is not valid \n"); //TODO: delete 
+          }
+        }
+          
+        find_and_init_page(free_ram_page_pa, a);
       }
-      printf("in uvmalloc \n"); //TODO: delete 
-      printf("va is %d", a); //TODO: delete 
-      find_and_init_page(free_ram_page_pa, a); 
-      // TODO call function to swap pages
+      else{
+        printf("va is %d", a); //TODO: delete
+        pte_t *pte;
+        if((pte = walk(p->pagetable, a, 1)) == 0){
+          if (*pte & PTE_V){
+            printf("pte is not valid \n"); //TODO: delete 
+          }
+        } 
+        init_free_ram_page(p->pagetable, a, (uint64)mem, index);     
+      }
     }
-
-    // }
-    // // end task 1.1
-    mem = kalloc();
-    if(mem == 0){
-      uvmdealloc(pagetable, a, oldsz);
-      return 0;
+    else{
+      if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
+        kfree(mem);
+        uvmdealloc(pagetable, a, oldsz);
+        return 0;
+      }
     }
-    
-    memset(mem, 0, PGSIZE);
-    if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
-      kfree(mem);
-      uvmdealloc(pagetable, a, oldsz);
-      return 0;
-    }
-
-    // // task 1.1
-    // if (myproc()->pid >=3){
-    //   // TODO add function that adding the page to ram pages array
-
-    // }
   }
   return newsz;
 }
