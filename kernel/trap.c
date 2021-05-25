@@ -39,6 +39,8 @@ usertrap(void)
   int which_dev = 0;
   //uint64 pa = -1; 
   uint64 va =r_stval();    //task 1.1
+  printf(" r_stval is %d \n", r_stval()); 
+
   //uint64 align_va = PGROUNDDOWN(va); //task 1.1
   if((r_sstatus() & SSTATUS_SPP) != 0)
   panic("usertrap: not from user mode");
