@@ -73,9 +73,6 @@ usertrap(void)
     find_and_init_page(pa, align_va);
     // 13 is Load page fault
     // 15 Store/AMO page fault
-    // TODO call function swapped
-    //usertrapret();
-    return;
   }
   else if(r_scause() == 8){
     // 8 is Environment call
