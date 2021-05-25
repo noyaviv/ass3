@@ -55,7 +55,7 @@ usertrap(void)
   // TODO maybe other place check with others
   // task 1.1
   if(r_scause() == 13 || r_scause() == 15){
-    //printf("*****swiping pages*****"); 
+    printf("infinite loop \n"); 
     // 13 is Load page fault
     // 15 Store/AMO page fault  
     //make sure there are no free pages in ram mem
@@ -77,8 +77,7 @@ usertrap(void)
     //usertrapret();
     return;
   }
-  
-  if(r_scause() == 8){
+  else if(r_scause() == 8){
     // 8 is Environment call
     // system call
 
@@ -94,7 +93,8 @@ usertrap(void)
     intr_on();
 
     syscall();
-  } else if((which_dev = devintr()) != 0){
+  } 
+  else if((which_dev = devintr()) != 0){
     // ok
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
