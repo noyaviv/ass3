@@ -338,9 +338,9 @@ handle_page_fault(uint64 va){
   if(pte == 0){
     panic("in handle_page_fault, page table don't exists \n");
   }
-  else if(!(*pte & PTE_PG)){
-    panic("in handle_page_fault, page is not in the swap file");
-  }
+  // else if(!(*pte & PTE_PG)){ //enter when flag PTE_PG is off  
+  //   panic("in handle_page_fault, page is not in the swap file");
+  // }
   int i = 0; 
   while(i<16){
     if (p->swapped_pages.pages[i].virtual_address == va)
