@@ -331,7 +331,6 @@ void
 handle_page_fault(uint64 va){
   struct proc *p = myproc();
   uint64 align_va = PGROUNDDOWN(va);
-  uint64 pa;
   uint free_pa_index;  
   pte_t *pte = walk(p->pagetable, align_va, 0);
   void * buffer =  kalloc(); 
