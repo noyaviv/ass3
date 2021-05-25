@@ -353,7 +353,7 @@ handle_page_fault(uint64 va){
     printf("in handle_page_fault, page not exists"); 
   }
   
-  swapped_pages.pages[i].virtual_address == -1); 
+  p->swapped_pages.pages[i].virtual_address == -1); 
 
   free_pa_index = find_free_page_in_ram(); 
   if (free_pa_index == -1){
@@ -364,7 +364,7 @@ handle_page_fault(uint64 va){
   }
   //reading the page content into buffer
   readFromSwapFile(p, buffer, i*PGSIZE, PGSIZE); //reading page to pa 
-  if(!init_free_ram_page(p->pagetable, va, buffer, free_pa_index)){
+  if(!init_free_ram_page(p->pagetable, va, &buffer, free_pa_index)){
     panic("in Handle_PGFLT, unexpectedly failed to find unused entry in main_mem array of the process");
   }
 }
