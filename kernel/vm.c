@@ -364,10 +364,11 @@ handle_page_fault(uint64 va){
   }
   //reading the page content into buffer
   readFromSwapFile(p, buffer, i*PGSIZE, PGSIZE); //reading page to pa 
-  if(!init_free_ram_page(p->pagetable, va, &buffer, free_pa_index)){
+  if(!init_free_ram_page(p->pagetable, va, *buffer, free_pa_index)){
     panic("in Handle_PGFLT, unexpectedly failed to find unused entry in main_mem array of the process");
   }
 }
+
  
 // Allocate PTEs and physical memory to grow process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
