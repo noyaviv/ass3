@@ -291,7 +291,7 @@ swap (void){
       return -1;
 
   uint64 pa = PTE2PA(*pte); 
-  kfree(*pa); //Free the page of physical memory
+  kfree((void*)pa); //Free the page of physical memory
 
   *pte |= PTE_PG; //page is on disc
   *pte &= ~PTE_V; //page is not valid
@@ -330,6 +330,7 @@ find_and_init_page(uint64 pa, uint64 va){
 
 void
 handle_page_fault(uint64 va){
+  struct proc *p = myproc();
   uint64 align_va = PGROUNDDOWN(va);
   uint64 pa;
   uint free_pa_index;  
@@ -344,7 +345,7 @@ handle_page_fault(uint64 va){
   }
   int i = 0; 
   while(i<16){
-    if (myproc()->swapped_pages.pages[sp_index].virtual_address == va)
+    if (p->swapped_pages.pages[sp_index].virtual_address == va)
       break; 
     i++; 
   }
@@ -362,9 +363,8 @@ handle_page_fault(uint64 va){
     }
   }
   //reading the page content into buffer
-  readFromSwapFile(myproc(), buffer, i*PGSIZE, PGSIZE); //reading page to pa 
-  init_free_ram_page(myproc()->pagetable, va, buffer, free_pa_index)
-  if(!init_free_ram_page(myproc()->pagetable, va, buffer, free_pa_index)){
+  readFromSwapFile(p, buffer, i*PGSIZE, PGSIZE); //reading page to pa 
+  if(!init_free_ram_page(p->pagetable, va, buffer, free_pa_index)){
     panic("in Handle_PGFLT, unexpectedly failed to find unused entry in main_mem array of the process");
   }
 }
