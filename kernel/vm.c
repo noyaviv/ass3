@@ -339,9 +339,9 @@ handle_page_fault(uint64 va){
   if(pte == 0){
     panic("in handle_page_fault, page table don't exists \n");
   }
-  // else if(!(*pte & PTE_PG)){ //enter when flag PTE_PG is off  
-  //   panic("in handle_page_fault, page is not in the swap file");
-  // }
+  else if(!(*pte & PTE_PG)){ //enter when flag PTE_PG is off  
+    panic("in handle_page_fault, page is not in the swap file");
+  }
   int i = 0; 
   while(i<16){
     if (p->swapped_pages.pages[i].virtual_address == va)
@@ -349,7 +349,7 @@ handle_page_fault(uint64 va){
     i++; 
   }
   if (i>15){
-    printf("in handle_page_fault, page not exists \n"); 
+    panic("in handle_page_fault, page not exists \n"); 
   }
   
   p->swapped_pages.pages[i].virtual_address = -1; 
@@ -397,6 +397,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     if(myproc()->pid > 2){
       ram_page_index = find_free_page_in_ram(); 
       if(ram_page_index == -1){ //no free ram page
+        printf("calling swap \n"); 
         ram_page_index = swap();
         if (ram_page_index == -1) { // if swap failed
           printf("error: process %d needs more than 32 page, exits...", myproc()->pid);
