@@ -334,6 +334,7 @@ handle_page_fault(uint64 va){
   uint free_pa_index;  
   pte_t *pte = walk(p->pagetable, align_va, 0);
   void * buffer =  kalloc(); 
+  printf("page va is %d \n", va);
 
   if(pte == 0){
     panic("in handle_page_fault, page table don't exists \n");
@@ -348,7 +349,7 @@ handle_page_fault(uint64 va){
     i++; 
   }
   if (i>15){
-    printf("in handle_page_fault, page not exists"); 
+    printf("in handle_page_fault, page not exists \n"); 
   }
   
   p->swapped_pages.pages[i].virtual_address = -1; 
@@ -357,7 +358,7 @@ handle_page_fault(uint64 va){
   if (free_pa_index == -1){
     free_pa_index = swap(); 
     if(free_pa_index == -1){
-      panic("in handle_page_fault, no unused page in swap file");
+      panic("in handle_page_fault, no unused page in swap file \n");
     }
   }
   //reading the page content into buffer
