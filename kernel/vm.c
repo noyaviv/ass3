@@ -353,7 +353,7 @@ handle_page_fault(uint64 va){
     printf("in handle_page_fault, page not exists"); 
   }
   
-  p->swapped_pages.pages[i].virtual_address == -1); 
+  p->swapped_pages.pages[i].virtual_address = -1; 
 
   free_pa_index = find_free_page_in_ram(); 
   if (free_pa_index == -1){
