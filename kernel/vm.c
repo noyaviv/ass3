@@ -301,7 +301,6 @@ swap (void){
 int
 init_free_ram_page(pagetable_t pagetable, uint64 va, uint64 pa , int index){
   struct proc *p = myproc();
-  printf("panic from init_free_ram_page \n"); //TODO :delete
   if(mappages(pagetable, va, PGSIZE, pa, PTE_W|PTE_U) < 0){
     uvmdealloc(pagetable, PGSIZE, PGSIZE);
     kfree((void*)pa); //Free the page of physical memory
@@ -335,7 +334,7 @@ handle_page_fault(uint64 va){
   pte_t *pte = walk(p->pagetable, align_va, 0);
   void * buffer =  kalloc(); 
   printf("page va is %d \n", va);
-
+  
   if(pte == 0){
     panic("in handle_page_fault, page table don't exists \n");
   }
@@ -396,6 +395,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     // // task 1.1
     if(myproc()->pid > 2){
       ram_page_index = find_free_page_in_ram(); 
+      printf("ram_page_index is %d \n", ram_page_index); 
       if(ram_page_index == -1){ //no free ram page
         printf("calling swap \n"); 
         ram_page_index = swap();
@@ -405,6 +405,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
         }          
       }
       init_free_ram_page(myproc()->pagetable, a, (uint64)mem, ram_page_index); 
+      printf("va of new ram page is: %d \n", p->ram_pages.pages[index].virtual_address); 
     }
     else{
       if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
