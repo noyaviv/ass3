@@ -403,8 +403,8 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
           printf("error: process %d needs more than 32 page, exits...", myproc()->pid);
           exit(-1);   
         }          
-        init_free_ram_page(myproc()->pagetable, a, (uint64)mem, ram_page_index); 
       }
+      init_free_ram_page(myproc()->pagetable, a, (uint64)mem, ram_page_index); 
     }
     else{
       if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
