@@ -375,7 +375,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 {
   char *mem;
   uint64 a;
-  uint64 free_ram_page_pa = -1; 
+  uint64 ram_page_index = -1; 
 
   if(newsz >= KERNBASE)
     return 0;
@@ -393,25 +393,15 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     }
     memset(mem, 0, PGSIZE);
     // // task 1.1
-    if(myproc()->pid >=3){
-      free_ram_page_pa = find_free_page_in_ram(); 
-      printf("free ram page pysc adrr %d \n",free_ram_page_pa ); //TODO: delete
-      if(free_ram_page_pa == -1){ //no free ram page
-        kfree(mem);
-        printf("calling swap from uvmalloc \n"); //TODO: delete
-        free_ram_page_pa = swap();
-        if(free_ram_page_pa == 0){ 
-            printf("error: process %d needs more than 32 page, exits...", myproc()->pid);
-            exit(-1); 
-        }
-        if (free_ram_page_pa == -1) { // if swap failed
+    if(myproc()->pid > 2){
+      ram_page_index = find_free_page_in_ram(); 
+      if(ram_page_index == -1){ //no free ram page
+        ram_page_index = swap();
+        if (ram_page_index == -1) { // if swap failed
           printf("error: process %d needs more than 32 page, exits...", myproc()->pid);
           exit(-1);   
         }          
-        find_and_init_page(free_ram_page_pa, a);
-      }
-      else{ 
-        init_free_ram_page(myproc()->pagetable, a, (uint64)mem, free_ram_page_pa);     
+        init_free_ram_page(myproc()->pagetable, a, (uint64)mem, ram_page_index); 
       }
     }
     else{
