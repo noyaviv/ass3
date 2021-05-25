@@ -12,6 +12,7 @@
  * the kernel's page table.
  */
 pagetable_t kernel_pagetable;
+//static char buffer[PGSIZE];// to Swap file
 
 extern char etext[];  // kernel.ld sets this to end of kernel code.
 
@@ -232,7 +233,6 @@ find_free_page_in_ram(void){
     else
       free_index++;
   }
-
   return -1;
 }
 
@@ -270,33 +270,33 @@ find_free_page_in_swapped(void){
   return -1;
 }
 
+//moves random page from main memory to swaped file. return ot's free index in the ram array   
 uint64
 swap (void){
-  struct proc *p=myproc();
-  uint occupied_index= find_occupied_page_in_ram();
-  uint sp_index= find_free_page_in_swapped();
+  struct proc *p = myproc();
+  uint occupied_index = find_occupied_page_in_ram();
+  uint sp_index = find_free_page_in_swapped();
   // if sp_index==-1 then there are MAX_PSYC_PAGES 
   uint64 mm_va = p->ram_pages.pages[occupied_index].virtual_address;
   
   writeToSwapFile(p, (char*)mm_va, sp_index*PGSIZE, PGSIZE);
-  p->swapped_pages.pages[sp_index].virtual_address=mm_va;
-  p->ram_pages.pages[occupied_index].virtual_address=-1; //this index is no more occupied
+  p->swapped_pages.pages[sp_index].virtual_address = mm_va;
+  p->ram_pages.pages[occupied_index].virtual_address = -1; //this index is no more occupied
   
-  //uint64 physical_address= walkaddr(p->pagetable, mm_va); //exchange virtual address to physical address
-  // kfree(*physical_address); //Free the page of physical memory
   // update pte flags
   pte_t *pte;
   uint64 a = PGROUNDDOWN(mm_va);
   
-  if((pte = walk(p->pagetable, a, 1)) == 0)
+  if((pte = walk(p->pagetable, a, 0)) == 0)
       return -1;
-  uint pa_of_mm_va = PTE2PA(*pte);
-  //memset((void *)PA2VA(pa), 0, PGSIZE);//Todo: pa or va?
+
+  uint64 pa = PTE2PA(*pte); 
+  kfree(*pa); //Free the page of physical memory
+
   *pte |= PTE_PG; //page is on disc
   *pte &= ~PTE_V; //page is not valid
-  // lcr3(V2P(myproc()->pgdir)); //TODO check: maybe needed for TLB maintainess
   
-  return pa_of_mm_va; //this physical addres is available now
+  return occupied_index; //this physical addres is available now
 }
 
 int
@@ -306,10 +306,10 @@ init_free_ram_page(pagetable_t pagetable, uint64 va, uint64 pa , int index){
   if(mappages(pagetable, va, PGSIZE, pa, PTE_W|PTE_U) < 0){
     uvmdealloc(pagetable, PGSIZE, PGSIZE);
     kfree((void*)pa); //Free the page of physical memory
-    return 1;
+    return 0;
   }
   p->ram_pages.pages[index].virtual_address = va;
-  return 0;
+  return 1;
 }
 
 // this method finds the "blank" \the free entry in ram_pages
@@ -328,6 +328,47 @@ find_and_init_page(uint64 pa, uint64 va){
   return -1;
 }
 
+void
+handle_page_fault(uint64 va){
+  uint64 align_va = PGROUNDDOWN(va);
+  uint64 pa;
+  uint free_pa_index;  
+  pte_t *pte = walk(p->pagetable, align_va, 0);
+  void * buffer =  kalloc(); 
+
+  if(pte == 0){
+    panic("in handle_page_fault, page table don't exists \n");
+  }
+  else if(!(*pte & PTE_PG)){
+    panic("in handle_page_fault, page is not in the swap file");
+  }
+  int i = 0; 
+  while(i<16){
+    if (myproc()->swapped_pages.pages[sp_index].virtual_address == va)
+      break; 
+    i++; 
+  }
+  if (i>15){
+    printf("in handle_page_fault, page not exists"); 
+  }
+  
+  swapped_pages.pages[sp_index].virtual_address == -1); 
+
+  free_pa_index = find_free_page_in_ram(); 
+  if (free_pa_index == -1){
+    free_pa_index = swap(); 
+    if(free_pa_index == -1){
+      panic("in handle_page_fault, no unused page in swap file");
+    }
+  }
+  //reading the page content into buffer
+  readFromSwapFile(myproc(), buffer, i*PGSIZE, PGSIZE); //reading page to pa 
+  init_free_ram_page(myproc()->pagetable, va, buffer, free_pa_index)
+  if(!init_free_ram_page(myproc()->pagetable, va, buffer, free_pa_index)){
+    panic("in Handle_PGFLT, unexpectedly failed to find unused entry in main_mem array of the process");
+  }
+}
+ 
 // Allocate PTEs and physical memory to grow process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
 uint64
@@ -360,29 +401,17 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
         kfree(mem);
         printf("calling swap from uvmalloc \n"); //TODO: delete
         free_ram_page_pa = swap();
-        if (free_ram_page_pa == -1) {
+        if(free_ram_page_pa == 0){ 
+            printf("error: process %d needs more than 32 page, exits...", myproc()->pid);
+            exit(-1); 
+        }
+        if (free_ram_page_pa == -1) { // if swap failed
           printf("error: process %d needs more than 32 page, exits...", myproc()->pid);
           exit(-1);   
-        }
-        printf("in uvmalloc \n"); //TODO: delete 
-        printf("va is %d", a); //TODO: delete
-        pte_t *pte;
-        if((pte = walk(myproc()->pagetable, a, 1)) == 0){
-          if (*pte & PTE_V){
-            printf("pte is not valid \n"); //TODO: delete 
-          }
-        }
-          
+        }          
         find_and_init_page(free_ram_page_pa, a);
       }
-      else{
-        printf("va is %d", a); //TODO: delete
-        pte_t *pte;
-        if((pte = walk(myproc()->pagetable, a, 1)) == 0){
-          if (*pte & PTE_V){
-            printf("pte is not valid \n"); //TODO: delete 
-          }
-        } 
+      else{ 
         init_free_ram_page(myproc()->pagetable, a, (uint64)mem, free_ram_page_pa);     
       }
     }
