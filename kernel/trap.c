@@ -39,7 +39,6 @@ usertrap(void)
   int which_dev = 0;
   //uint64 pa = -1; 
   uint64 va =r_stval();    //task 1.1
-  printf(" r_stval is %d \n", r_stval()); 
 
   //uint64 align_va = PGROUNDDOWN(va); //task 1.1
   if((r_sstatus() & SSTATUS_SPP) != 0)
@@ -58,7 +57,6 @@ usertrap(void)
   // task 1.1
   if(r_scause() == 13 || r_scause() == 15){
     handle_page_fault(va); 
-    // printf("infinite loop \n"); 
     // // 13 is Load page fault
     // // 15 Store/AMO page fault  
     // //make sure there are no free pages in ram mem
