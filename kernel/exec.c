@@ -21,6 +21,11 @@ exec(char *path, char **argv)
   pagetable_t pagetable = 0, oldpagetable;
   struct proc *p = myproc();
 
+  for(int i = 0; i< 16; i++){
+    p->swapped_pages.pages[i].virtual_address = -1;
+    p->ram_pages.pages[i].virtual_address = -1; //this index is no more occupied
+  }
+
   begin_op();
 
   if((ip = namei(path)) == 0){
