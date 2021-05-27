@@ -280,7 +280,7 @@ swap (void){
   uint occupied_index = find_occupied_page_in_ram();
   uint sp_index = find_free_page_in_swapped();
   // if sp_index==-1 then there are MAX_PSYC_PAGES 
-  void *mm_va = p->ram_pages.pages[occupied_index].virtual_address;
+  void *mm_va = &(p->ram_pages.pages[occupied_index].virtual_address);
   
   writeToSwapFile(p, mm_va, sp_index*PGSIZE, PGSIZE);
   p->swapped_pages.pages[sp_index].virtual_address = mm_va;
