@@ -224,9 +224,9 @@ uvminit(pagetable_t pagetable, uchar *src, uint sz)
 // task 1 
 
 //check if there is a free page in ram mem, of so, return it's PSYC addr
-uint
+int
 find_free_page_in_ram(void){
-  uint free_index=0;
+  int free_index=0;
   struct proc *p =  myproc();
   while(free_index<16){
     //finidng free page in swap file memory
@@ -335,7 +335,7 @@ handle_page_fault(uint64 va){
   struct proc *p = myproc();
   uint64 align_va = PGROUNDDOWN(va);
   printf("align_va is %d \n", align_va); 
-  uint free_pa_index;  
+  int free_pa_index;  
   pte_t *pte = walk(p->pagetable, align_va, 0);
   void * buffer =  kalloc(); 
   printf("page va is %d \n", va);
@@ -380,7 +380,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 {
   char *mem;
   uint64 a;
-  uint64 ram_page_index = -1; 
+  int ram_page_index = -1; 
 
   if(newsz >= KERNBASE)
     return 0;
@@ -401,7 +401,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     if(myproc()->pid > 2){
       ram_page_index = find_free_page_in_ram(); 
       printf("blablabla is %d \n", ram_page_index); 
-      if(ram_page_index == (uint64)(-1)){ //no free ram page
+      if(ram_page_index == (-1)){ //no free ram page
         printf("calling swap \n"); 
         ram_page_index = swap();
         if (ram_page_index == -1) { // if swap failed
