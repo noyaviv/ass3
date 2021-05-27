@@ -381,7 +381,7 @@ handle_page_fault(uint64 va){
 uint64
 uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 {
-  printf("In uvmalloc \n"); 
+  printf("In uvmalloc with pid: %d \n", myproc()->pid); 
   char *mem;
   uint64 a;
   int ram_page_index = -1; 
