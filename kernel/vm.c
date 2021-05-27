@@ -487,6 +487,7 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
+  printf("In uvmcopy, with sz %d \n", sz); 
   pte_t *pte;
   uint64 pa, i;
   uint flags;
