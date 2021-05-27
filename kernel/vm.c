@@ -409,6 +409,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
           exit(-1);   
         }          
       }
+      printf("hadas is in the house \n"); 
       init_free_ram_page(myproc()->pagetable, a, (uint64)mem, ram_page_index); 
       printf("va of new ram page is: %d \n", myproc()->ram_pages.pages[ram_page_index].virtual_address); 
     }
