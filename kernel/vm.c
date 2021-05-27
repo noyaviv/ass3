@@ -154,7 +154,7 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     }
     *pte = PA2PTE(pa) | perm | PTE_V;
     if(*pte & PTE_PG){ //if paged out, turn off valid flag 
-      *pte &= ~PTE_V
+      *pte &= ~PTE_V;
     }
     if(a == last)
       break;
