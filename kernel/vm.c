@@ -404,6 +404,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
       if(ram_page_index == (-1)){ //no free ram page
         printf("calling swap \n"); 
         ram_page_index = swap();
+        printf("free ram page index is : %d \n", ram_page_index); 
         if (ram_page_index == -1) { // if swap failed
           printf("error: process %d needs more than 32 page, exits...", myproc()->pid);
           exit(-1);   
