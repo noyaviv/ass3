@@ -213,7 +213,7 @@ kfileread(struct file *f, uint64 addr, int n)
 int
 kfilewrite(struct file *f, uint64 addr, int n)
 {
-  print("hi im in kfike \n"); 
+  printf("hi im in kfuck \n"); 
   int r, ret = 0;
 
   if(f->writable == 0)
