@@ -304,7 +304,7 @@ swap (void){
 int
 init_free_ram_page(pagetable_t pagetable, uint64 va, uint64 pa , int index){
   struct proc *p = myproc();
-  if(mappages(pagetable, va, PGSIZE, pa, PTE_W|PTE_U) < 0){
+  if(mappages(pagetable, va, PGSIZE, pa, PTE_W|PTE_X|PTE_R|PTE_U) < 0){
     uvmdealloc(pagetable, PGSIZE, PGSIZE);
     kfree((void*)pa); //Free the page of physical memory
     return 0;
