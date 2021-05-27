@@ -56,7 +56,8 @@ usertrap(void)
   // TODO maybe other place check with others
   // task 1.1
   if(r_scause() == 13 || r_scause() == 15){
-    printf("couse is: %x, \n", r_scause); 
+    if(r_scause == 13)
+      printf("couse is: 13 \n"); 
     handle_page_fault(va); 
     // // 13 is Load page fault
     // // 15 Store/AMO page fault  
