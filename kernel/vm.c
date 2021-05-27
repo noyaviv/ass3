@@ -381,6 +381,7 @@ handle_page_fault(uint64 va){
 uint64
 uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 {
+  printf("In uvmalloc \n"); 
   char *mem;
   uint64 a;
   int ram_page_index = -1; 
@@ -403,9 +404,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     // // task 1.1
     if(myproc()->pid > 2){
       ram_page_index = find_free_page_in_ram(); 
-      printf("blablabla is %d \n", ram_page_index); 
       if(ram_page_index == (-1)){ //no free ram page
-        printf("calling swap \n"); 
         ram_page_index = swap();
         printf("free ram page index is : %d \n", ram_page_index); 
         if (ram_page_index == -1) { // if swap failed
