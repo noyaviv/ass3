@@ -147,8 +147,10 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     printf("va is not aligned \n"); //TODO: delete 
   last = PGROUNDDOWN(va + size - 1);
   for(;;){
-    if((pte = walk(pagetable, a, 1)) == 0)
+    if((pte = walk(pagetable, a, 1)) == 0){
+      printf("In mappages: walk operation failed \n") ;
       return -1;
+    }
     if(*pte & PTE_V){
       panic("remap");
     }
@@ -411,7 +413,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
           exit(-1);   
         }          
       }
-      printf("hadas is in the house \n"); 
+      printf("va of desire ram page is: %d\n",a); 
       init_free_ram_page(myproc()->pagetable, a, (uint64)mem, ram_page_index); 
       printf("va of new ram page is: %d \n", myproc()->ram_pages.pages[ram_page_index].virtual_address); 
     }
