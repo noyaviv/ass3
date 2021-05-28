@@ -126,7 +126,7 @@ found:
   // task 1.1
 
   // pid 1 is the process of the shell, pid 2 is userinit
-  if (p->pid>=3){
+  if (p->pid>2){
     //printf("process with pid %d is now creatinf swap file", p->pid);
     release(&p->lock); 
     createSwapFile(p);
@@ -330,7 +330,7 @@ fork(void)
   pid = np->pid;
   // task 1.1
   // copy all paging information from parent
-  if(p->pid > 1) {
+  if(p->pid > 2) {
     np->swapped_pages.page_counter=p->swapped_pages.page_counter;
     np->ram_pages.page_counter=p->ram_pages.page_counter;
     np->ram_pages.first_page_in=p->ram_pages.page_counter; 
@@ -339,12 +339,12 @@ fork(void)
       np->swapped_pages.pages[i].file_offset = p->swapped_pages.pages[i].file_offset;
       np->ram_pages.pages[i].virtual_address = p->ram_pages.pages[i].virtual_address;
       //copy the data from the parent's file to the child's file
-      if(p->pid>2){
-        if (np->ram_pages.pages[i].virtual_address!= -1){
-          readFromSwapFile(p, buffer, i*PGSIZE, (PGSIZE));
-          writeToSwapFile(np, buffer, i*PGSIZE, (PGSIZE));
-        }
+
+      if (np->ram_pages.pages[i].virtual_address!= -1){
+        readFromSwapFile(p, buffer, i*PGSIZE, (PGSIZE));
+        writeToSwapFile(np, buffer, i*PGSIZE, (PGSIZE));
       }
+
       np->ram_pages.pages[i].access_counter = p->ram_pages.pages[i].access_counter;
     }
  }

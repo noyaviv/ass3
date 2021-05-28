@@ -300,7 +300,7 @@ swap (void){
   kfree((void*)pa); //Free the page of physical memory
 
   *pte |= PTE_PG; //page is on disc
-  *pte &= ~PTE_V; //page is not valid
+  //*pte &= ~PTE_V; //page is not valid
   
   return occupied_index; //this physical addres is available now
 }
@@ -429,8 +429,6 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
         uvmdealloc(pagetable, a, oldsz);
         return 0;
       }
-      ram_page_index = find_free_page_in_ram(); 
-      myproc()->ram_pages.pages[ram_page_index].virtual_address = (uint64)mem;
     }
   }
   return newsz;
