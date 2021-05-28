@@ -331,13 +331,15 @@ fork(void)
   // task 1.1
   // copy all paging information from parent
   if(p->pid > 2) {
-    np->swapped_pages.page_counter=p->swapped_pages.page_counter;
-    np->ram_pages.page_counter=p->ram_pages.page_counter;
-    np->ram_pages.first_page_in=p->ram_pages.page_counter; 
+    np->swapped_pages.page_counter = p->swapped_pages.page_counter;
+    np->ram_pages.page_counter = p->ram_pages.page_counter;
+    np->ram_pages.first_page_in = p->ram_pages.page_counter; 
     for (int i=0 ; i<MAX_PSYC_PAGES ; i++){
       np->swapped_pages.pages[i].virtual_address = p->swapped_pages.pages[i].virtual_address;
-      np->swapped_pages.pages[i].file_offset = p->swapped_pages.pages[i].file_offset;
+      np->swapped_pages.pages[i].is_used = p->swapped_pages.pages[i].is_used;
       np->ram_pages.pages[i].virtual_address = p->ram_pages.pages[i].virtual_address;
+      np->ram_pages.pages[i].is_used = p->ram_pages.pages[i].is_used;
+
       //copy the data from the parent's file to the child's file
 
       if (np->ram_pages.pages[i].virtual_address!= -1){
