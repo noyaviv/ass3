@@ -282,7 +282,6 @@ find_free_page_in_swapped(void){
 //moves random page from main memory to swaped file. return ot's free index in the ram array   
 uint64
 swap (void){
-  printf("hi im in swap function \n"); 
   struct proc *p = myproc();
   uint occupied_index = find_occupied_page_in_ram();
   uint sp_index = find_free_page_in_swapped();
@@ -290,10 +289,8 @@ swap (void){
   uint64 mm_va = p->ram_pages.pages[occupied_index].virtual_address;
   void *mm_va_pointer = &(p->ram_pages.pages[occupied_index].virtual_address);
   
-  // update pte flags
   pte_t *pte;
   uint64 a = PGROUNDDOWN(mm_va);
-  
   
   if((pte = walk(p->pagetable, a, 0)) == 0)
       return -1;
@@ -308,6 +305,7 @@ swap (void){
   uint64 pa = PTE2PA(*pte); 
   kfree((void*)pa); //Free the page of physical memory
 
+  // update pte flags
   *pte |= PTE_PG; //page is on disc
   //*pte &= ~PTE_V; //page is not valid
   
@@ -431,7 +429,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
         }          
       }
       printf("va of desire ram page is: %d\n",a); 
-      init_free_ram_page(myproc()->pagetable, a, (uint64)mem, ram_page_index); 
+      init_free_ram_page(pagetable, a, (uint64)mem, ram_page_index); 
       printf("va of new ram page is: %d \n", myproc()->ram_pages.pages[ram_page_index].virtual_address); 
     }
     else{
