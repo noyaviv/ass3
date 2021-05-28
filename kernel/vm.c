@@ -247,7 +247,8 @@ find_occupied_page_in_ram(void){
   while(occupied_index<16){
     //finidng occupied page in swap file memory
     if(p->ram_pages.pages[occupied_index].virtual_address != -1){
-      uint64 a = PGROUNDDOWN(ram_pages.pages[occupied_index].virtual_address);
+      uint64 a = PGROUNDDOWN(p->ram_pages.pages[occupied_index].virtual_address);
+      pte_t *pte;
       if((pte = walk(p->pagetable, a, 0)) == 0)
         if(*pte & PTE_V)
           return occupied_index;
