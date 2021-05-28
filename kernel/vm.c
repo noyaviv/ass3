@@ -345,11 +345,9 @@ void
 handle_page_fault(uint64 va){
   struct proc *p = myproc();
   uint64 align_va = PGROUNDDOWN(va);
-  printf("align_va is %d \n", align_va); 
   int free_pa_index;  
   pte_t *pte = walk(p->pagetable, align_va, 0);
   void * buffer =  kalloc(); 
-  printf("page va is %d \n", va);
   
   if(pte == 0){
     panic("in handle_page_fault, page table don't exists \n");
@@ -392,12 +390,12 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
   printf("In uvmalloc with pid: %d \n", myproc()->pid); 
   printf("oldsize is : %d \n", oldsz); 
   printf("newsize is : %d \n", newsz); 
-    for(int j=0; j<16; j++){
-          printf("ram page number %d va is %d \n", j, myproc()->ram_pages.pages[j].virtual_address );
-          printf("swapped page number %d va is %d \n", j, myproc()->swapped_pages.pages[j].virtual_address);
-          printf("ram page %d  is_used %d \n", j, myproc()->ram_pages.pages[j].is_used );
-          printf("swapped page  %d  is_used  %d \n", j, myproc()->swapped_pages.pages[j].is_used);
-        }
+    // for(int j=0; j<16; j++){
+    //       printf("ram page number %d va is %d \n", j, myproc()->ram_pages.pages[j].virtual_address );
+    //       printf("swapped page number %d va is %d \n", j, myproc()->swapped_pages.pages[j].virtual_address);
+    //       printf("ram page %d  is_used %d \n", j, myproc()->ram_pages.pages[j].is_used );
+    //       printf("swapped page  %d  is_used  %d \n", j, myproc()->swapped_pages.pages[j].is_used);
+    //     }
 
 
   char *mem;
@@ -424,7 +422,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
       ram_page_index = find_free_page_in_ram(); 
       if(ram_page_index ==  -1){ //no free ram page
         ram_page_index = swap();
-        printf("free ram page index is : %d \n", ram_page_index); 
+        printf("In uvmalloc, after swap free ram page index is : %d \n", ram_page_index); 
         if (ram_page_index == -1) { // if swap failed
           printf("error: process %d needs more than 32 page, exits...", myproc()->pid);
           exit(-1);   

@@ -57,28 +57,9 @@ usertrap(void)
   // task 1.1
   //13: page fault caused by a read
   //15: page fault cause by a write
-  if(r_scause() == 13 || r_scause() == 15){
-    if(r_scause() == 13)
-      printf("cause is: 13 \n"); 
+  if(r_scause() == 13 || r_scause() == 15|| r_scause() == 12){
     if(p->pid>2)
       handle_page_fault(va); 
-    // // 13 is Load page fault
-    // // 15 Store/AMO page fault  
-    // //make sure there are no free pages in ram mem
-    // pa = find_free_page_in_ram();
-    // if(pa  == -1){
-    //   //page out operation
-    //   pa = swap();
-    // }
-    // //in case the page out didn't work for some reason
-    // if (pa == -1){
-    //   printf("ram memory: somthing's wrong from usertrap"); 
-    // }
-    // //init the page in ram mem, that couse the page fualt
-    // //printf("in uvmalloc \n");  //TODO delete
-    // find_and_init_page(pa, align_va);
-    // // 13 is Load page fault
-    // // 15 Store/AMO page fault
   }
   else if(r_scause() == 8){
     // 8 is Environment call
