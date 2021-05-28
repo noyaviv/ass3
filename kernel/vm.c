@@ -463,6 +463,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 uint64
 uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 {
+  printf("In uvmdealloc"); 
   if(newsz >= oldsz)
     return oldsz;
 
