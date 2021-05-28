@@ -22,8 +22,10 @@ exec(char *path, char **argv)
   struct proc *p = myproc();
 
   for(int i = 0; i< 16; i++){
-    p->swapped_pages.pages[i].virtual_address = -1;
-    p->ram_pages.pages[i].virtual_address = -1; //this index is no more occupied
+    p->swapped_pages.pages[i].virtual_address = 0;
+    p->ram_pages.pages[i].virtual_address = 0; //this index is no more occupied
+    p->swapped_pages.pages[i].is_used = 0;
+    p->ram_pages.pages[i].is_used = 0; 
   }
 
   begin_op();
