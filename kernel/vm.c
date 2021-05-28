@@ -282,6 +282,7 @@ find_free_page_in_swapped(void){
 //moves random page from main memory to swaped file. return ot's free index in the ram array   
 uint64
 swap (void){
+  printf("In swap\n");
   struct proc *p = myproc();
   uint occupied_index = find_occupied_page_in_ram();
   uint sp_index = find_free_page_in_swapped();
