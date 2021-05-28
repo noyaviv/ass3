@@ -323,6 +323,7 @@ init_free_ram_page(pagetable_t pagetable, uint64 va, uint64 pa , int index){
     return 0;
   }
   p->ram_pages.pages[index].virtual_address = va;
+  p->ram_pages.pages[index].is_used = 1;
   return 1;
 }
 
