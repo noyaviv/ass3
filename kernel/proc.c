@@ -347,7 +347,6 @@ fork(void)
         writeToSwapFile(np, buffer, i*PGSIZE, (PGSIZE));
       }
 
-      np->ram_pages.pages[i].access_counter = p->ram_pages.pages[i].access_counter;
     }
  }
   printf("In fork, pid of child is: %d, va is: %d \n ", np->pid, np->swapped_pages.pages[0].virtual_address); 
