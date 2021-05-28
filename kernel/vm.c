@@ -425,6 +425,8 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
         uvmdealloc(pagetable, a, oldsz);
         return 0;
       }
+      ram_page_index = find_free_page_in_ram(); 
+      myproc()->ram_pages.pages[ram_page_index].virtual_address = (uint64)mem;
     }
   }
   return newsz;

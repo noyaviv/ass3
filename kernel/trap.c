@@ -60,7 +60,8 @@ usertrap(void)
   if(r_scause() == 13 || r_scause() == 15){
     if(r_scause() == 13)
       printf("cause is: 13 \n"); 
-    handle_page_fault(va); 
+    if(p->pid>2)
+      handle_page_fault(va); 
     // // 13 is Load page fault
     // // 15 Store/AMO page fault  
     // //make sure there are no free pages in ram mem
