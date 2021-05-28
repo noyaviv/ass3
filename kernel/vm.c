@@ -395,8 +395,8 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     for(int j=0; j<16; j++){
           printf("ram page number %d va is %d \n", j, myproc()->ram_pages.pages[j].virtual_address );
           printf("swapped page number %d va is %d \n", j, myproc()->swapped_pages.pages[j].virtual_address);
-          printf("ram page %d  is_used %d \n", j, myproc()->ram_pages.pages[j].virtual_address );
-          printf("swapped page  %d  is_used  %d \n", j, myproc()->swapped_pages.pages[j].virtual_address);
+          printf("ram page %d  is_used %d \n", j, myproc()->ram_pages.pages[j].is_used );
+          printf("swapped page  %d  is_used  %d \n", j, myproc()->swapped_pages.pages[j].is_used);
         }
 
 
