@@ -287,7 +287,7 @@ swap (void){
   uint sp_index = find_free_page_in_swapped();
   // if sp_index==-1 then there are MAX_PSYC_PAGES 
   uint64 mm_va = p->ram_pages.pages[occupied_index].virtual_address;
-  void *mm_va_pointer = (char*)(p->ram_pages.pages[occupied_index].virtual_address);
+  uint mm_va_pointer = p->ram_pages.pages[occupied_index].virtual_address;
   
   pte_t *pte;
   uint64 a = PGROUNDDOWN(mm_va);
@@ -295,7 +295,7 @@ swap (void){
   if((pte = walk(p->pagetable, a, 0)) == 0)
       return -1;
 
-  writeToSwapFile(p, mm_va_pointer, sp_index*PGSIZE, PGSIZE);
+  writeToSwapFile(p, (char*)mm_va_pointer, sp_index*PGSIZE, PGSIZE);
   
 
   p->swapped_pages.pages[sp_index].virtual_address = mm_va;
