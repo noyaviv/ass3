@@ -232,7 +232,7 @@ find_free_page_in_ram(void){
   struct proc *p =  myproc();
   while(free_index<16){
     //finidng free page in swap file memory
-    if(p->ram_pages.pages[free_index].virtual_address == -1)
+    if(!p->ram_pages.pages[free_index].virtual_address)
       return free_index; 
     else
       free_index++;
@@ -246,7 +246,7 @@ find_occupied_page_in_ram(void){
   struct proc *p =  myproc();
   while(occupied_index<16){
     //finidng occupied page in swap file memory
-    if(p->ram_pages.pages[occupied_index].virtual_address != -1){
+    if(p->ram_pages.pages[occupied_index].is_used){
       uint64 a = PGROUNDDOWN(p->ram_pages.pages[occupied_index].virtual_address);
       pte_t *pte;
       if((pte = walk(p->pagetable, a, 0)) == 0)
@@ -269,7 +269,7 @@ find_free_page_in_swapped(void){
   struct proc *p =  myproc();
   while(sp_index<16){
     //finidng occupied page in swap file memory
-    if(p->swapped_pages.pages[sp_index].virtual_address == -1)
+    if(!p->swapped_pages.pages[sp_index].is_used)
       return sp_index;
     else
       sp_index++;
@@ -290,16 +290,20 @@ swap (void){
   uint64 mm_va = p->ram_pages.pages[occupied_index].virtual_address;
   void *mm_va_pointer = &(p->ram_pages.pages[occupied_index].virtual_address);
   
-  writeToSwapFile(p, mm_va_pointer, sp_index*PGSIZE, PGSIZE);
-  p->swapped_pages.pages[sp_index].virtual_address = mm_va;
-  p->ram_pages.pages[occupied_index].virtual_address = -1; //this index is no more occupied
-  
   // update pte flags
   pte_t *pte;
   uint64 a = PGROUNDDOWN(mm_va);
   
+  
   if((pte = walk(p->pagetable, a, 0)) == 0)
       return -1;
+
+  writeToSwapFile(p, mm_va_pointer, sp_index*PGSIZE, PGSIZE);
+
+  p->swapped_pages.pages[sp_index].virtual_address = mm_va;
+  p->swapped_pages.pages[sp_index].is_used = 1; 
+  p->ram_pages.pages[occupied_index].is_used = 0; //this index is no more occupied
+  
 
   uint64 pa = PTE2PA(*pte); 
   kfree((void*)pa); //Free the page of physical memory
@@ -330,7 +334,7 @@ find_and_init_page(uint64 pa, uint64 va){
   int index =0;
   //finidng free page in main memory
   while(index<MAX_PSYC_PAGES){
-    if(p->ram_pages.pages[index].virtual_address == -1){
+    if(!p->ram_pages.pages[index].is_used){
       return init_free_ram_page(p->pagetable, va, pa, index);
     }
     index++;
@@ -356,7 +360,7 @@ handle_page_fault(uint64 va){
   }
   int i = 0; 
   while(i<16){
-    if (p->swapped_pages.pages[i].virtual_address == va)
+    if (p->swapped_pages.pages[i].virtual_address == va && p->swapped_pages.pages[i].is_used)
       break; 
     i++; 
   }
@@ -364,7 +368,7 @@ handle_page_fault(uint64 va){
     panic("in handle_page_fault, page not exists \n"); 
   }
   
-  p->swapped_pages.pages[i].virtual_address = -1; 
+  p->swapped_pages.pages[i].virtual_address = 0; 
 
   free_pa_index = find_free_page_in_ram(); 
   if (free_pa_index == -1){

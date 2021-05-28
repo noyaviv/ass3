@@ -136,10 +136,10 @@ found:
     p->ram_pages.page_counter=0;
     p->ram_pages.first_page_in=0; 
     for (int i=0 ; i<MAX_PSYC_PAGES ; i++){
-      p->swapped_pages.pages[i].virtual_address = -1;
-      p->swapped_pages.pages[i].file_offset = -1;
-      p->ram_pages.pages[i].virtual_address = -1;
-      p->ram_pages.pages[i].access_counter = -1;
+      p->swapped_pages.pages[i].virtual_address = 0;
+      p->swapped_pages.pages[i].is_used = 0;
+      p->ram_pages.pages[i].virtual_address = 0;
+      p->ram_pages.pages[i].is_used = 0;
     }
   //}
   // Allocate a trapframe page.

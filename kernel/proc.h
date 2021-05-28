@@ -85,14 +85,14 @@ enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 // task 1.1
 struct swap_page{
   uint virtual_address;
-  uint file_offset;
+  uint is_used;
 };
 
 // task 1.1
 // data structure that containes pages on the physical memory that is located in the ram memory
 struct ram_page{
   uint virtual_address;
-  uint access_counter; // TODO check if needed
+  uint is_used; // TODO check if needed
 };
 
 // task 1.1
