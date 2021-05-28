@@ -254,8 +254,7 @@ find_occupied_page_in_ram(void){
         if(*pte & PTE_V)
           return occupied_index;
     }
-    else
-      occupied_index++;
+    occupied_index++;
   }
   if(occupied_index > 15){
     //proc has a MAX_PSYC_PAGES pages
