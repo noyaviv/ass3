@@ -382,7 +382,8 @@ uint64
 uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 {
   printf("In uvmalloc with pid: %d \n", myproc()->pid); 
-  printf("oldsize is : %d , newsize is : %d \n", oldsz, newsz); 
+  printf("oldsize is : %d \n", oldsz); 
+  printf("newsize is : %d \n", newsz); 
 
 
   char *mem;
