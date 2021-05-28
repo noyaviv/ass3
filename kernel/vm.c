@@ -291,9 +291,10 @@ swap (void){
   
   pte_t *pte;
   uint64 a = PGROUNDDOWN(mm_va);
-  
+  printf("In swap, with aligned va from ram %d \n", a);
   if((pte = walk(p->pagetable, a, 0)) == 0)
       return -1;
+  printf("In swap, after walk with aligned va from ram %d \n", a);
 
   writeToSwapFile(p, (char*)mm_va_pointer, sp_index*PGSIZE, PGSIZE);
   
