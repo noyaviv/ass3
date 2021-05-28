@@ -428,9 +428,8 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
           exit(-1);   
         }          
       }
-      printf("va of desire ram page is: %d\n",a); 
       init_free_ram_page(pagetable, a, (uint64)mem, ram_page_index); 
-      printf("va of new ram page is: %d \n", myproc()->ram_pages.pages[ram_page_index].virtual_address); 
+      printf("In uvmalloc, va of new ram page is: %d \n", myproc()->ram_pages.pages[ram_page_index].virtual_address); 
     }
     else{
       if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
@@ -440,6 +439,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
       }
     }
   }
+  printf("In uvmalloc, return newsz is: %d \n", newsz);
   return newsz;
 }
 
