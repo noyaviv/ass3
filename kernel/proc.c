@@ -339,9 +339,11 @@ fork(void)
       np->swapped_pages.pages[i].file_offset = p->swapped_pages.pages[i].file_offset;
       np->ram_pages.pages[i].virtual_address = p->ram_pages.pages[i].virtual_address;
       //copy the data from the parent's file to the child's file
-      if (np->ram_pages.pages[i].virtual_address!= -1){
-        readFromSwapFile(p, buffer, i*PGSIZE, (PGSIZE));
-        writeToSwapFile(np, buffer, i*PGSIZE, (PGSIZE));
+      if(p->pid>2){
+        if (np->ram_pages.pages[i].virtual_address!= -1){
+          readFromSwapFile(p, buffer, i*PGSIZE, (PGSIZE));
+          writeToSwapFile(np, buffer, i*PGSIZE, (PGSIZE));
+        }
       }
       np->ram_pages.pages[i].access_counter = p->ram_pages.pages[i].access_counter;
     }
