@@ -247,6 +247,7 @@ find_occupied_page_in_ram(void){
   while(occupied_index<16){
     //finidng occupied page in swap file memory
     if(p->ram_pages.pages[occupied_index].is_used){
+      printf("In find_occupied_page_in_ram, with index: %d\n",occupied_index ); 
       uint64 a = PGROUNDDOWN(p->ram_pages.pages[occupied_index].virtual_address);
       pte_t *pte;
       if((pte = walk(p->pagetable, a, 0)) == 0)
@@ -286,11 +287,11 @@ swap (void){
   struct proc *p = myproc();
   printf("In swap\n");
 
-  uint occupied_index = find_occupied_page_in_ram();
-  printf("In swap, with page index from ram %d \n", occupied_index);
-
   uint sp_index = find_free_page_in_swapped();
   printf("In swap, with page from swaped %d \n", sp_index);
+
+  uint occupied_index = find_occupied_page_in_ram();
+  printf("In swap, with page index from ram %d \n", occupied_index);
 
   // if sp_index==-1 then there are MAX_PSYC_PAGES 
   uint64 mm_va = p->ram_pages.pages[occupied_index].virtual_address;
