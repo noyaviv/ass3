@@ -417,11 +417,13 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
       uvmdealloc(pagetable, a, oldsz);
       return 0;
     }
+    printf("In uvmalloc, after kalloc");
     memset(mem, 0, PGSIZE);
     // // task 1.1
     if(myproc()->pid > 2){
       ram_page_index = find_free_page_in_ram(); 
       if(ram_page_index ==  -1){ //no free ram page
+        printf("In uvmalloc, no free page in ram");
         ram_page_index = swap();
         printf("In uvmalloc, after swap free ram page index is : %d \n", ram_page_index); 
         if (ram_page_index == -1) { // if swap failed
