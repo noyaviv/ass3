@@ -411,6 +411,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
   a = PGROUNDUP(oldsz);
 
   for(; a < newsz; a += PGSIZE){
+    printf("In uvmalloc, newsz is: %d\n", newsz);
     mem = kalloc();
     if(mem == 0){
       uvmdealloc(pagetable, a, oldsz);
