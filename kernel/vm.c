@@ -232,7 +232,7 @@ find_free_page_in_ram(void){
   struct proc *p =  myproc();
   while(free_index<16){
     //finidng free page in swap file memory
-    if(!p->ram_pages.pages[free_index].virtual_address)
+    if(!p->ram_pages.pages[free_index].is_used)
       return free_index; 
     else
       free_index++;
@@ -422,13 +422,9 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     // // task 1.1
     if(myproc()->pid > 2){
       ram_page_index = find_free_page_in_ram(); 
-      if(ram_page_index == (-1)){ //no free ram page
+      if(ram_page_index ==  -1){ //no free ram page
         ram_page_index = swap();
         printf("free ram page index is : %d \n", ram_page_index); 
-        for(int j=0; j<16; j++){
-          printf("ram page number %d va is %d \n", j, myproc()->ram_pages.pages[j].virtual_address );
-          printf("swapped page number %d va is %d \n", j, myproc()->swapped_pages.pages[j].virtual_address);
-        }
         if (ram_page_index == -1) { // if swap failed
           printf("error: process %d needs more than 32 page, exits...", myproc()->pid);
           exit(-1);   
