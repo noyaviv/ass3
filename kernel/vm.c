@@ -286,6 +286,9 @@ swap (void){
   struct proc *p = myproc();
   uint occupied_index = find_occupied_page_in_ram();
   uint sp_index = find_free_page_in_swapped();
+  printf("In swap, with page index from ram %d \n", occupied_index);
+  printf("In swap, with page from swaped %d \n", sp_index);
+
   // if sp_index==-1 then there are MAX_PSYC_PAGES 
   uint64 mm_va = p->ram_pages.pages[occupied_index].virtual_address;
   uint64 mm_va_pointer = p->ram_pages.pages[occupied_index].virtual_address;
