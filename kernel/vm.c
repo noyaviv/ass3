@@ -421,7 +421,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     memset(mem, 0, PGSIZE);
     // // task 1.1
     if(myproc()->pid > 2){
-      for(int j=0; j<16; j++){
+      for(int j=0; j<16; j++)
         printf("ram page number %d is_used %d \n", j, myproc()->ram_pages.pages[j].is_used );
       ram_page_index = find_free_page_in_ram(); 
       if(ram_page_index ==  -1){ //no free ram page
