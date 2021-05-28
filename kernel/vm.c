@@ -181,7 +181,7 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
   for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
     if((pte = walk(pagetable, a, 0)) == 0)
       panic("uvmunmap: walk");
-    if((*pte & PTE_V) == 0)
+    if((*pte & PTE_V) == 0 && (*pte & PTE_PG) == 0)
       panic("uvmunmap: not mapped");
     if(PTE_FLAGS(*pte) == PTE_V)
       panic("uvmunmap: not a leaf");
@@ -246,8 +246,12 @@ find_occupied_page_in_ram(void){
   struct proc *p =  myproc();
   while(occupied_index<16){
     //finidng occupied page in swap file memory
-    if(p->ram_pages.pages[occupied_index].virtual_address != -1)
-      return occupied_index;
+    if(p->ram_pages.pages[occupied_index].virtual_address != -1){
+      uint64 a = PGROUNDDOWN(ram_pages.pages[occupied_index].virtual_address);
+      if((pte = walk(p->pagetable, a, 0)) == 0)
+        if(*pte & PTE_V)
+          return occupied_index;
+    }
     else
       occupied_index++;
   }
