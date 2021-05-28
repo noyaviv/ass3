@@ -284,9 +284,12 @@ uint64
 swap (void){
   printf("In swap\n");
   struct proc *p = myproc();
+  printf("In swap\n");
+
   uint occupied_index = find_occupied_page_in_ram();
-  uint sp_index = find_free_page_in_swapped();
   printf("In swap, with page index from ram %d \n", occupied_index);
+
+  uint sp_index = find_free_page_in_swapped();
   printf("In swap, with page from swaped %d \n", sp_index);
 
   // if sp_index==-1 then there are MAX_PSYC_PAGES 
@@ -430,7 +433,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
         printf("ram page number %d is_used %d \n", j, myproc()->ram_pages.pages[j].is_used );
       ram_page_index = find_free_page_in_ram(); 
       if(ram_page_index ==  -1){ //no free ram page
-        printf("In uvmalloc, no free page in ram");
+        printf("In uvmalloc, no free page in ram\n");
         ram_page_index = swap();
         printf("In uvmalloc, after swap free ram page index is : %d \n", ram_page_index); 
         if (ram_page_index == -1) { // if swap failed
