@@ -126,12 +126,12 @@ found:
   // task 1.1
 
   // pid 1 is the process of the shell, pid 2 is userinit
-  //if (p->pid>=3){
+  if (p->pid>=3){
     //printf("process with pid %d is now creatinf swap file", p->pid);
     release(&p->lock); 
     createSwapFile(p);
     acquire(&p->lock); 
-  //}
+  }
     p->swapped_pages.page_counter=0;
     p->ram_pages.page_counter=0;
     p->ram_pages.first_page_in=0; 
@@ -330,7 +330,7 @@ fork(void)
   pid = np->pid;
   // task 1.1
   // copy all paging information from parent
-  //if(p->pid > 1) {
+  if(p->pid > 1) {
     np->swapped_pages.page_counter=p->swapped_pages.page_counter;
     np->ram_pages.page_counter=p->ram_pages.page_counter;
     np->ram_pages.first_page_in=p->ram_pages.page_counter; 
@@ -345,7 +345,7 @@ fork(void)
       }
       np->ram_pages.pages[i].access_counter = p->ram_pages.pages[i].access_counter;
     }
- // }
+ }
   printf("In fork, pid of child is: %d, va is: %d \n ", np->pid, np->swapped_pages.pages[0].virtual_address); 
   //end of changes
   release(&np->lock);
