@@ -247,7 +247,7 @@ find_occupied_page_in_ram(void){
   while(occupied_index<16){
     //finidng occupied page in swap file memory
     if(p->ram_pages.pages[occupied_index].is_used){
-      printf("In find_occupied_page_in_ram, with index: %d\n",occupied_index ); 
+      //printf("In find_occupied_page_in_ram, with index: %d\n",occupied_index ); 
       uint64 a = PGROUNDDOWN(p->ram_pages.pages[occupied_index].virtual_address);
       pte_t *pte;
       if((pte = walk(p->pagetable, a, 0)) == 0)
@@ -284,7 +284,6 @@ uint64
 swap (void){
   printf("In swap\n");
   struct proc *p = myproc();
-  printf("In swap\n");
 
   uint sp_index = find_free_page_in_swapped();
   printf("In swap, with page from swaped %d \n", sp_index);
@@ -420,13 +419,11 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
   a = PGROUNDUP(oldsz);
 
   for(; a < newsz; a += PGSIZE){
-    printf("In uvmalloc, newsz is: %d\n", a);
     mem = kalloc();
     if(mem == 0){
       uvmdealloc(pagetable, a, oldsz);
       return 0;
     }
-    printf("In uvmalloc, after kalloc");
     memset(mem, 0, PGSIZE);
     // // task 1.1
     if(myproc()->pid > 2){
@@ -443,7 +440,12 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
         }          
       }
       init_free_ram_page(pagetable, a, (uint64)mem, ram_page_index); 
-      printf("In uvmalloc, va of new ram page is: %d \n", myproc()->ram_pages.pages[ram_page_index].virtual_address); 
+      printf("In uvmalloc, va of new ram page is: %d \n", myproc()->ram_pages.pages[ram_page_index].virtual_address);
+      pte_t *pte;
+      uint temp_va =  myproc()->ram_pages.pages[ram_page_index].virtual_address; 
+      if((pte = walk(myproc()->pagetable, temp_va, 0)) == 0)
+        if(*pte & PTE_V)
+          printf("In uvmalloc, pte valid of temp_va %d is; %d \n", temp_va, (*pte & PTE_V));
     }
     else{
       if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
