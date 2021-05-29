@@ -346,12 +346,9 @@ fork(void)
       printf("4) In fork with pid of father %d \n", p->pid); 
 
       if (np->ram_pages.pages[i].virtual_address!= -1){
-        acquire(&p->lock);
-        readFromSwapFile(p, buffer, i*PGSIZE, (PGSIZE));
         release(&p->lock);
-        acquire(&p->lock);
         writeToSwapFile(np, buffer, i*PGSIZE, (PGSIZE));
-        release(&p->lock);
+        acquire(&p->lock);
       }
       printf("5) In fork with pid of father %d \n", p->pid); 
 
