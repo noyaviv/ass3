@@ -127,7 +127,6 @@ found:
 
   // pid 1 is the process of the shell, pid 2 is userinit
   if (p->pid>2){
-    //printf("process with pid %d is now creatinf swap file", p->pid);
     release(&p->lock); 
     createSwapFile(p);
     acquire(&p->lock); 
@@ -312,7 +311,6 @@ fork(void)
     return -1;
   }
   np->sz = p->sz;
-  printf("1) In fork with pid of father %d \n", p->pid); 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
 
@@ -329,7 +327,6 @@ fork(void)
 
   pid = np->pid;
    
-  printf("In fork, pid of child is: %d, va is: %d \n ", np->pid, np->swapped_pages.pages[0].virtual_address); 
   //end of changes
   release(&np->lock);
 
