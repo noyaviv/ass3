@@ -367,10 +367,12 @@ handle_page_fault(uint64 va){
   }
   printf("In handle_page_fault, desired va page  is: %d \n", va); 
   printf("In handle_page_fault, desired align va page  is: %d \n", align_va); 
+  
 
   int i = 0; 
   while(i<16){
-    printf("swaped page num %d va is %d \n",i, p->swapped_pages.pages[i].virtual_address); 
+    printf("swaped page num %d va is %d \n",i, p->swapped_pages.pages[i].virtual_address);
+    printf("swaped page num %d is ised %d \n",i, p->swapped_pages.pages[i].is_used); 
     printf("ram page num %d va is %d \n",i, p->ram_pages.pages[i].virtual_address); 
 
     if (p->swapped_pages.pages[i].virtual_address == va && p->swapped_pages.pages[i].is_used)
