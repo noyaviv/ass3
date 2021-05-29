@@ -143,7 +143,7 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
   pte_t *pte;
 
   a = PGROUNDDOWN(va);
-  last = PGROUNDDOWN(a + size - 1);
+  last = PGROUNDDOWN(va + size - 1);
   for(;;){
     if((pte = walk(pagetable, a, 1)) == 0){
       printf("In mappages: walk operation failed \n") ;
@@ -323,12 +323,15 @@ swap (void){
 int
 init_free_ram_page(pagetable_t pagetable, uint64 va, uint64 pa , int index){
   struct proc *p = myproc();
-  if(mappages(pagetable, va, PGSIZE, pa, PTE_W|PTE_X|PTE_R|PTE_U) < 0){
+  uint64 a = PGROUNDDOWN(va);
+
+  if(mappages(pagetable, a, PGSIZE, pa, PTE_W|PTE_X|PTE_R|PTE_U) < 0){
     uvmdealloc(pagetable, PGSIZE, PGSIZE);
     kfree((void*)pa); //Free the page of physical memory
     return 0;
   }
-  p->ram_pages.pages[index].virtual_address = va;
+
+  p->ram_pages.pages[index].virtual_address = va; //TODO or va ? 
   printf("In init_free_ram_page, ram page %d va is: %d\n", index, p->ram_pages.pages[index].virtual_address);
   p->ram_pages.pages[index].is_used = 1;
   return 1;
