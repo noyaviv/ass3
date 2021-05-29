@@ -375,8 +375,9 @@ handle_page_fault(uint64 va){
     printf("swaped page num %d va is %d \n",i, p->swapped_pages.pages[i].virtual_address);
     printf("swaped page num %d is ised %d \n",i, p->swapped_pages.pages[i].is_used); 
     printf("ram page num %d va is %d \n",i, p->ram_pages.pages[i].virtual_address); 
-    uint64 compare_va = ((uint64)(p->swapped_pages.pages[i].virtual_address))-va; 
-    if(!compare_va){
+    uint64 temp =((uint64)(p->swapped_pages.pages[i].virtual_address))-va;
+    printf("temp is %d \n",temp); 
+    if(temp == 0){
       printf("curr page va equal desired va \n "); 
       if(p->swapped_pages.pages[i].is_used){
         printf("curr page is used \n "); 
