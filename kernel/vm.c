@@ -310,7 +310,7 @@ swap (void){
   *pte |= PTE_PG; //page is on disc
   printf("In swap, turning off valid for %d\n", a); 
   *pte &= ~PTE_V; //page is not valid
-  if (*pte &=PTE_V){
+  if (*pte & PTE_V){
     printf("Hi there\n"); 
   }
 
