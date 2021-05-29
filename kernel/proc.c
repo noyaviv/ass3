@@ -330,6 +330,11 @@ fork(void)
   printf("3) In fork with pid of father %d \n", p->pid); 
 
   pid = np->pid;
+   
+  printf("In fork, pid of child is: %d, va is: %d \n ", np->pid, np->swapped_pages.pages[0].virtual_address); 
+  //end of changes
+  release(&np->lock);
+
   // task 1.1
   // copy all paging information from parent
   if(p->pid > 2) {
@@ -347,25 +352,14 @@ fork(void)
 
       if (p->ram_pages.pages[i].is_used){
         printf("Hi1 \n"); 
-        release(&p->lock);
         readFromSwapFile(p, buffer, i*PGSIZE, (PGSIZE));
-        acquire(&p->lock);
-
         printf("Hi2 \n"); 
-
-        release(&np->lock);
         writeToSwapFile(np, buffer, i*PGSIZE, (PGSIZE));
         printf("Hi3 \n"); 
-        acquire(&np->lock);
       }
       printf("5) In fork with pid of father %d \n", p->pid); 
-
-
     }
- }
-  printf("In fork, pid of child is: %d, va is: %d \n ", np->pid, np->swapped_pages.pages[0].virtual_address); 
-  //end of changes
-  release(&np->lock);
+  }
 
   acquire(&wait_lock);
   np->parent = p;
