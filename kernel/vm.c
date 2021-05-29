@@ -301,8 +301,10 @@ swap (void){
   if((pte = walk(p->pagetable, a, 0)) == 0)
       return -1;
   printf("In swap, after walk with aligned va from ram %d \n", a);
+  uint64 pa = PTE2PA(*pte);
+  printf("In swap, after walk with pa from ram %d \n", pa);
 
-  writeToSwapFile(p, (char*)mm_va_pointer, sp_index*PGSIZE, PGSIZE);
+  writeToSwapFile(p, (char*)pa, sp_index*PGSIZE, PGSIZE);
   
   p->swapped_pages.pages[sp_index].virtual_address = mm_va;
   p->swapped_pages.pages[sp_index].is_used = 1; 
