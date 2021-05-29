@@ -302,7 +302,9 @@ swap (void){
       return -1;
   printf("In swap, after walk with aligned va from ram %d \n", a);
   uint64 pa = PTE2PA(*pte);
-  printf("In swap, after walk with pa from ram %d \n", pa);
+  uint pa2 = PTE2PA(*pte);
+
+  printf("In swap, after walk with pa from ram %d \n", pa2);
 
   writeToSwapFile(p, (char*)pa, sp_index*PGSIZE, PGSIZE);
   
