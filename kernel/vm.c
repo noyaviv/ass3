@@ -378,7 +378,7 @@ handle_page_fault(uint64 va){
 
     if (p->swapped_pages.pages[i].virtual_address == va && p->swapped_pages.pages[i].is_used)
       sp_index= i; 
-    i++; 
+    else i++; 
   }
   if (i>15){
     panic("in handle_page_fault, page not exists \n"); 
