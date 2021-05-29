@@ -317,7 +317,7 @@ swap (void){
 
   // update pte flags
   *pte |= PTE_PG; //page is on disc
-  //*pte &= ~PTE_V; //page is not valid
+  *pte &= ~PTE_V; //page is not valid
   
   return occupied_index; //this physical addres is available now
 }
