@@ -302,9 +302,6 @@ swap (void){
       return -1;
   printf("In swap, after walk with aligned va from ram %d \n", a);
   uint64 pa = PTE2PA(*pte);
-  uint pa2 = PTE2PA(*pte);
-
-  printf("In swap, after walk with pa from ram %d \n", pa2);
 
   writeToSwapFile(p, (char*)pa, sp_index*PGSIZE, PGSIZE);
   
@@ -375,7 +372,7 @@ handle_page_fault(uint64 va){
     printf("swaped page num %d va is %d \n",i, p->swapped_pages.pages[i].virtual_address);
     printf("swaped page num %d is ised %d \n",i, p->swapped_pages.pages[i].is_used); 
     printf("ram page num %d va is %d \n",i, p->ram_pages.pages[i].virtual_address); 
-    if((int)(p->swapped_pages.pages[i].virtual_address) == (int)va){
+    if((uint64)(p->swapped_pages.pages[i].virtual_address) == align_va){
       printf("curr page va equal desired va \n "); 
       if(p->swapped_pages.pages[i].is_used){
         printf("curr page is used \n "); 
