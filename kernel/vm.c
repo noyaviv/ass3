@@ -376,9 +376,14 @@ handle_page_fault(uint64 va){
     printf("swaped page num %d is ised %d \n",i, p->swapped_pages.pages[i].is_used); 
     printf("ram page num %d va is %d \n",i, p->ram_pages.pages[i].virtual_address); 
 
-    if ((uint64)(p->swapped_pages.pages[i].virtual_address) == va && p->swapped_pages.pages[i].is_used)
-      sp_index= i; 
-    else i++; 
+    if((uint64)(p->swapped_pages.pages[i].virtual_address) == va){
+      printf("curr page va equal desired va \n "); 
+      if(p->swapped_pages.pages[i].is_used){
+        printf("curr page is used \n "); 
+        break;
+      }
+    }
+    i++; 
   }
   if (i>15){
     panic("in handle_page_fault, page not exists \n"); 
