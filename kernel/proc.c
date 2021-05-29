@@ -324,10 +324,8 @@ fork(void)
     if(p->ofile[i])
       np->ofile[i] = filedup(p->ofile[i]);
   np->cwd = idup(p->cwd);
-  printf("2) In fork with pid of father %d \n", p->pid); 
 
   safestrcpy(np->name, p->name, sizeof(p->name));
-  printf("3) In fork with pid of father %d \n", p->pid); 
 
   pid = np->pid;
    
@@ -348,16 +346,10 @@ fork(void)
       np->ram_pages.pages[i].is_used = p->ram_pages.pages[i].is_used;
 
       //copy the data from the parent's file to the child's file
-      printf("4) In fork with pid of father %d \n", p->pid); 
-
       if (p->ram_pages.pages[i].is_used){
-        printf("Hi1 \n"); 
         readFromSwapFile(p, buffer, i*PGSIZE, (PGSIZE));
-        printf("Hi2 \n"); 
         writeToSwapFile(np, buffer, i*PGSIZE, (PGSIZE));
-        printf("Hi3 \n"); 
       }
-      printf("5) In fork with pid of father %d \n", p->pid); 
     }
   }
 

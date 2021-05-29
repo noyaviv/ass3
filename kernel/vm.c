@@ -387,7 +387,7 @@ handle_page_fault(uint64 va){
   //reading the page content into buffer
   readFromSwapFile(p, buffer, i*PGSIZE, PGSIZE); //reading page to pa 
    *pte &= ~PTE_PG;
-  if(!init_free_ram_page(p->pagetable, va, (uint64)(&buffer), free_pa_index)){
+  if(!init_free_ram_page(p->pagetable, va, (uint64)buffer, free_pa_index)){
     panic("in Handle_PGFLT, unexpectedly failed to find unused entry in main_mem array of the process");
   }
 }
