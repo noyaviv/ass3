@@ -293,7 +293,7 @@ swap (void){
 
   // if sp_index==-1 then there are MAX_PSYC_PAGES 
   uint64 mm_va = p->ram_pages.pages[occupied_index].virtual_address;
-  uint64 mm_va_pointer = p->ram_pages.pages[occupied_index].virtual_address;
+  //uint64 mm_va_pointer = p->ram_pages.pages[occupied_index].virtual_address;
   
   pte_t *pte;
   uint64 a = PGROUNDDOWN(mm_va);
@@ -311,7 +311,6 @@ swap (void){
   p->ram_pages.pages[occupied_index].is_used = 0; //this index is no more occupied
   
 
-  uint64 pa = PTE2PA(*pte); 
   kfree((void*)pa); //Free the page of physical memory
 
   // update pte flags
