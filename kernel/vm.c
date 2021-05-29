@@ -280,12 +280,16 @@ find_free_page_in_swapped(void){
 
 //moves random page from main memory to swaped file. return ot's free index in the ram array   
 uint64
-swap (void){
+swap (int index){
   struct proc *p = myproc();
 
   uint sp_index = find_free_page_in_swapped();
   printf("In swap, with page from swaped %d \n", sp_index);
-
+  // if(sp_index == -1){
+  //   if(index == -1)
+  //     panic("In swap, can't find free page in file");
+  //   sp_index = index; 
+  // }
   uint occupied_index = find_occupied_page_in_ram();
   printf("In swap, with page index from ram %d \n", occupied_index);
 
@@ -388,11 +392,13 @@ handle_page_fault(uint64 va){
     panic("in handle_page_fault, page not exists \n"); 
   }
   
-  p->swapped_pages.pages[i].virtual_address = 0; 
+  p->swapped_pages.pages[i].virtual_address = 0;
+  p->swapped_pages.pages[i].is_used = 0; 
+ 
 
   free_pa_index = find_free_page_in_ram(); 
   if (free_pa_index == -1){
-    free_pa_index = swap(); 
+    free_pa_index = swap(i); 
     if(free_pa_index == -1){
       panic("in handle_page_fault, no unused page in swap file \n");
     }
@@ -455,7 +461,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
       ram_page_index = find_free_page_in_ram(); 
       if(ram_page_index ==  -1){ //no free ram page
         printf("In uvmalloc, no free page in ram\n");
-        ram_page_index = swap();
+        ram_page_index = swap(-1);
         printf("In uvmalloc, after swap free ram page index is : %d \n", ram_page_index); 
         if (ram_page_index == -1) { // if swap failed
           printf("error: process %d needs more than 32 page, exits...\n", myproc()->pid);

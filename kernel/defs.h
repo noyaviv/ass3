@@ -180,7 +180,7 @@ uint64          walkaddr(pagetable_t, uint64);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
-uint64          swap (void);                        //task 1.1
+uint64          swap (int);                        //task 1.1
 int             find_and_init_page(uint64, uint64); //task 1.1
 int             find_free_page_in_ram(void);        //task 1.1
 void            handle_page_fault(uint64);          //task 1.1
