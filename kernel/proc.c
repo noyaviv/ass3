@@ -349,6 +349,7 @@ fork(void)
         readFromSwapFile(p, buffer, i*PGSIZE, (PGSIZE));
         release(&np->lock);
         writeToSwapFile(np, buffer, i*PGSIZE, (PGSIZE));
+        printf("Hi \n"); 
         acquire(&np->lock);
       }
       printf("5) In fork with pid of father %d \n", p->pid); 
