@@ -398,6 +398,8 @@ handle_page_fault(uint64 va){
    if(*pte & PTE_V){
      printf("page %d is valid!!! \n",align_va); 
    }
+  printf("page %d is not valid!!! \n",align_va); 
+
   if(!init_free_ram_page(p->pagetable, va, (uint64)buffer, free_pa_index)){
     panic("in Handle_PGFLT, unexpectedly failed to find unused entry in main_mem array of the process");
   }
