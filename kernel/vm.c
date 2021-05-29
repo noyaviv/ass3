@@ -252,7 +252,7 @@ find_occupied_page_in_ram(void){
       // pte_t *pte;
       // if((pte = walk(p->pagetable, a, 0)) == 0)
       //   if(*pte & PTE_V)
-      //     return occupied_index;
+      return occupied_index;
     }
     occupied_index++;
   }
