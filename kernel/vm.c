@@ -368,7 +368,9 @@ handle_page_fault(uint64 va){
   printf("In handle_page_fault, desired va page  is: %d \n", va); 
   int i = 0; 
   while(i<16){
-    printf("swaped page num %d va is %d ",i, p->swapped_pages.pages[i].virtual_address); 
+    printf("swaped page num %d va is %d \n",i, p->swapped_pages.pages[i].virtual_address); 
+    printf("ram page num %d va is %d \n",i, p->ram_pages.pages[i].virtual_address); 
+
     if (p->swapped_pages.pages[i].virtual_address == va && p->swapped_pages.pages[i].is_used)
       break; 
     i++; 
