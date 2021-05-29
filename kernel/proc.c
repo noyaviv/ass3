@@ -312,7 +312,7 @@ fork(void)
     return -1;
   }
   np->sz = p->sz;
-
+  printf("1) In fork with pid of father %d \n", p->pid); 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
 
@@ -324,8 +324,10 @@ fork(void)
     if(p->ofile[i])
       np->ofile[i] = filedup(p->ofile[i]);
   np->cwd = idup(p->cwd);
+  printf("2) In fork with pid of father %d \n", p->pid); 
 
   safestrcpy(np->name, p->name, sizeof(p->name));
+  printf("3) In fork with pid of father %d \n", p->pid); 
 
   pid = np->pid;
   // task 1.1
@@ -341,11 +343,14 @@ fork(void)
       np->ram_pages.pages[i].is_used = p->ram_pages.pages[i].is_used;
 
       //copy the data from the parent's file to the child's file
+      printf("4) In fork with pid of father %d \n", p->pid); 
 
       if (np->ram_pages.pages[i].virtual_address!= -1){
         readFromSwapFile(p, buffer, i*PGSIZE, (PGSIZE));
         writeToSwapFile(np, buffer, i*PGSIZE, (PGSIZE));
       }
+      printf("5) In fork with pid of father %d \n", p->pid); 
+
 
     }
  }
