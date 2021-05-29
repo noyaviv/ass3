@@ -308,8 +308,12 @@ swap (void){
 
   // update pte flags
   *pte |= PTE_PG; //page is on disc
-  printf("In swap, turning of valid for %d\n", mm_va); 
+  printf("In swap, turning off valid for %d\n", a); 
   *pte &= ~PTE_V; //page is not valid
+  if (*pte &=PTE_V){
+    printf("Hi there\n"); 
+  }
+
   
   return occupied_index; //this physical addres is available now
 }
