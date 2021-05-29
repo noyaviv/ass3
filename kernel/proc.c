@@ -347,8 +347,10 @@ fork(void)
 
       if (p->ram_pages.pages[i].is_used){
         printf("Hi1 \n"); 
-
+        release(&p->lock);
         readFromSwapFile(p, buffer, i*PGSIZE, (PGSIZE));
+        acquire(&p->lock);
+
         printf("Hi2 \n"); 
 
         release(&np->lock);
