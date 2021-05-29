@@ -446,7 +446,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     //   if((pte = walk(myproc()->pagetable, temp_va, 0)) != 0)
     //     if(*pte & PTE_V)
     //       printf("In uvmalloc, pte valid of temp_va %d is; %d \n", temp_va, (*pte & PTE_V));
-    // }
+    }
     else{
       if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
         kfree(mem);
