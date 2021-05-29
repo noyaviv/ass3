@@ -248,11 +248,11 @@ find_occupied_page_in_ram(void){
     //finidng occupied page in swap file memory
     if(p->ram_pages.pages[occupied_index].is_used){
       printf("In find_occupied_page_in_ram, with index: %d\n",occupied_index ); 
-      uint64 a = PGROUNDDOWN(p->ram_pages.pages[occupied_index].virtual_address);
-      pte_t *pte;
-      if((pte = walk(p->pagetable, a, 0)) == 0)
-        if(*pte & PTE_V)
-          return occupied_index;
+      // uint64 a = PGROUNDDOWN(p->ram_pages.pages[occupied_index].virtual_address);
+      // pte_t *pte;
+      // if((pte = walk(p->pagetable, a, 0)) == 0)
+      //   if(*pte & PTE_V)
+      //     return occupied_index;
     }
     occupied_index++;
   }
