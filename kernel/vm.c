@@ -432,7 +432,9 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     return oldsz;
 
   a = PGROUNDUP(oldsz);
-
+  if ((a+newsz)/PGSIZE >31){
+    panic("In uvmalloc, not enough space for pages"); 
+  }
   for(; a < newsz; a += PGSIZE){
     mem = kalloc();
     if(mem == 0){
