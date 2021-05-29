@@ -150,6 +150,8 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
       return -1;
     }
     if(*pte & PTE_V){
+      printf("a is %d \n", a);
+      printf("va is %d \n", va);
       panic("remap");
     }
     *pte = PA2PTE(pa) | perm | PTE_V;
