@@ -370,20 +370,21 @@ handle_page_fault(uint64 va){
   
 
   int i = 0; 
+  int sp_index = 0; 
   while(i<16){
     printf("swaped page num %d va is %d \n",i, p->swapped_pages.pages[i].virtual_address);
     printf("swaped page num %d is ised %d \n",i, p->swapped_pages.pages[i].is_used); 
     printf("ram page num %d va is %d \n",i, p->ram_pages.pages[i].virtual_address); 
 
     if (p->swapped_pages.pages[i].virtual_address == va && p->swapped_pages.pages[i].is_used)
-      break; 
+      sp_index= i; 
     i++; 
   }
   if (i>15){
     panic("in handle_page_fault, page not exists \n"); 
   }
   
-  p->swapped_pages.pages[i].virtual_address = 0; 
+  p->swapped_pages.pages[sp_index].virtual_address = 0; 
 
   free_pa_index = find_free_page_in_ram(); 
   if (free_pa_index == -1){
@@ -393,7 +394,7 @@ handle_page_fault(uint64 va){
     }
   }
   //reading the page content into buffer
-  readFromSwapFile(p, buffer, i*PGSIZE, PGSIZE); //reading page to pa 
+  readFromSwapFile(p, buffer, sp_index*PGSIZE, PGSIZE); //reading page to pa 
    *pte &= ~PTE_PG;
   if(!init_free_ram_page(p->pagetable, va, (uint64)buffer, free_pa_index)){
     panic("in Handle_PGFLT, unexpectedly failed to find unused entry in main_mem array of the process");
