@@ -155,9 +155,9 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
       panic("remap");
     }
     *pte = PA2PTE(pa) | perm | PTE_V;
-    if(*pte & PTE_PG){ //if paged out, turn off valid flag 
-      *pte &= ~PTE_V;
-    }
+    // if(*pte & PTE_PG){ //if paged out, turn off valid flag 
+    //   *pte &= ~PTE_V;
+    // }
     if(a == last)
       break;
     a += PGSIZE;
@@ -248,11 +248,11 @@ find_occupied_page_in_ram(void){
     //finidng occupied page in swap file memory
     if(p->ram_pages.pages[occupied_index].is_used){
       printf("In find_occupied_page_in_ram, with index: %d\n",occupied_index ); 
-      // uint64 a = PGROUNDDOWN(p->ram_pages.pages[occupied_index].virtual_address);
-      // pte_t *pte;
-      // if((pte = walk(p->pagetable, a, 0)) == 0)
-      //   if(*pte & PTE_V)
-      return occupied_index;
+      uint64 a = PGROUNDDOWN(p->ram_pages.pages[occupied_index].virtual_address);
+      pte_t *pte;
+      if((pte = walk(p->pagetable, a, 0)) == 0)
+        if(*pte & PTE_V)
+          return occupied_index;
     }
     occupied_index++;
   }
@@ -384,6 +384,7 @@ handle_page_fault(uint64 va){
   }
   //reading the page content into buffer
   readFromSwapFile(p, buffer, i*PGSIZE, PGSIZE); //reading page to pa 
+   *pte &= ~PTE_PG;
   if(!init_free_ram_page(p->pagetable, va, (uint64)(&buffer), free_pa_index)){
     panic("in Handle_PGFLT, unexpectedly failed to find unused entry in main_mem array of the process");
   }
@@ -463,7 +464,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 uint64
 uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 {
-  printf("In uvmdealloc"); 
+  printf("******In uvmdealloc****** \n"); 
   if(newsz >= oldsz)
     return oldsz;
 
