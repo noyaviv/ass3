@@ -501,7 +501,8 @@ handle_page_fault(uint64 va){
   
   p->swapped_pages.pages[i].virtual_address = 0;
   p->swapped_pages.pages[i].is_used = 0; 
- 
+  memset(buffer,0,PGSIZE);
+  readFromSwapFile(p, buffer, i*PGSIZE, PGSIZE); //reading page to pa 
 
   free_pa_index = find_free_page_in_ram(); 
   if (free_pa_index == -1){
@@ -512,8 +513,7 @@ handle_page_fault(uint64 va){
     }
   }
   //reading the page content into buffer
-  memset(buffer,0,PGSIZE);
-  readFromSwapFile(p, buffer, i*PGSIZE, PGSIZE); //reading page to pa 
+  
    *pte &= ~PTE_PG;
    if(*pte & PTE_V){
      printf("page %d is valid!!! \n",align_va); 
