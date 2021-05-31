@@ -110,6 +110,7 @@ void            yield(void);
 int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
+uint            reset_counter(void);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
@@ -184,7 +185,7 @@ uint64          swap (int);                        //task 1.1
 int             find_and_init_page(uint64, uint64); //task 1.1
 int             find_free_page_in_ram(void);        //task 1.1
 void            handle_page_fault(uint64);          //task 1.1
-
+void            update_pages_counters(void);        //task 2
 // plic.c
 void            plicinit(void);
 void            plicinithart(void);

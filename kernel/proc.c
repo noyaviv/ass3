@@ -100,6 +100,17 @@ allocpid() {
   return pid;
 }
 
+uint
+reset_counter(){
+  #if SELECTION  == NFUA
+    return 0;
+  #endif
+  #if SELECTION  == LAPA
+    return 0xFFFFFFFF;
+  #endif
+  return 1; //TODO change
+}
+
 // Look in the process table for an UNUSED proc.
 // If found, initialize state required to run in the kernel,
 // and return with p->lock held.
@@ -137,10 +148,12 @@ found:
     for (int i=0 ; i<MAX_PSYC_PAGES ; i++){
       p->swapped_pages.pages[i].virtual_address = 0;
       p->swapped_pages.pages[i].is_used = 0;
+      p->swapped_pages.pages[i].page_counter=reset_counter();
       p->ram_pages.pages[i].virtual_address = 0;
       p->ram_pages.pages[i].is_used = 0;
+      p->ram_pages.pages[i].page_counter = reset_counter();
     }
-  //}
+
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
@@ -339,8 +352,10 @@ fork(void)
     for (int i=0 ; i<MAX_PSYC_PAGES ; i++){
       np->swapped_pages.pages[i].virtual_address = p->swapped_pages.pages[i].virtual_address;
       np->swapped_pages.pages[i].is_used = p->swapped_pages.pages[i].is_used;
+      np->swapped_pages.pages[i].page_counter = p->swapped_pages.pages[i].page_counter;
       np->ram_pages.pages[i].virtual_address = p->ram_pages.pages[i].virtual_address;
       np->ram_pages.pages[i].is_used = p->ram_pages.pages[i].is_used;
+      np->ram_pages.pages[i].page_counter = p->ram_pages.pages[i].page_counter;
 
       //copy the data from the parent's file to the child's file
       if (p->ram_pages.pages[i].is_used){
@@ -401,10 +416,10 @@ exit(int status)
   end_op();
   p->cwd = 0;
 
-
-  // if(p->pid >= 3) {  //task 1.1
-  //   removeSwapFile(p);
-  // }
+  // TODO add
+  if(p->pid > 2) {  //task 1.1
+    removeSwapFile(p);
+  }
   acquire(&wait_lock);
 
   // Give any children to init.
@@ -501,7 +516,9 @@ scheduler(void)
         p->state = RUNNING;
         c->proc = p;
         swtch(&c->context, &p->context);
-
+        #if SELECTION!=NONE
+          update_pages_counters();
+        #endif
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         c->proc = 0;
