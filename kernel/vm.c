@@ -682,11 +682,9 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       goto err;
     }
     if((*pte & PTE_PG)){
-        if(pte_new = walk(new, i, 0)){
+        if((pte_new = walk(new, i, 0))){
         *pte_new &= ~PTE_V;
         *pte_new |= ~PTE_PG;
-
-
         }
     }
   }
