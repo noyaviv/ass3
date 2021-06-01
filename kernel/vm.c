@@ -234,6 +234,7 @@ update_pages_counters(){
       p->ram_pages.pages[i].page_counter>>=1; //shift counter right
       if (*pte & PTE_A){
         p->ram_pages.pages[i].page_counter |= 1<<31; //put 1 in the msb
+        //  p->ram_pages.pages[i].page_counter |=0x80000000;
         *pte &= ~PTE_A; //turn off flag
       }
     }
@@ -404,14 +405,15 @@ swap(int index){
   //uint64 mm_va_pointer = p->ram_pages.pages[occupied_index].virtual_address;
   
   pte_t *pte;
-  uint64 a = PGROUNDDOWN(mm_va);
+  uint64 a = PGROUNDDOWN(mm_va); //opposite from align
   if((pte = walk(p->pagetable, a, 0)) == 0)
-      return -1;
+    return -1;
   uint64 pa = PTE2PA(*pte);
   
+  printf("writing to page sp_index: %d a_va is: %d mm_va is: %d\n",sp_index,a,mm_va);
   writeToSwapFile(p, (char*)pa, sp_index*PGSIZE, PGSIZE);
   
-  p->swapped_pages.pages[sp_index].virtual_address = mm_va;
+  p->swapped_pages.pages[sp_index].virtual_address = a;
   p->swapped_pages.pages[sp_index].is_used = 1; 
   p->ram_pages.pages[occupied_index].is_used = 0; //this index is no more occupied
   
@@ -423,7 +425,7 @@ swap(int index){
   // printf("In swap, turning off valid for %d\n", a); 
   *pte &= ~PTE_V; //page is not valid
   if (*pte & PTE_V){
-    printf("Hi there\n"); 
+    printf("Hi there\n"); //todo  
   }
 
   
@@ -498,14 +500,17 @@ handle_page_fault(uint64 va){
   if (i>15){
     panic("in handle_page_fault, page not exists \n"); 
   }
+
   
   p->swapped_pages.pages[i].virtual_address = 0;
   p->swapped_pages.pages[i].is_used = 0; 
+ 
   memset(buffer,0,PGSIZE);
+  printf("reading page i: %d align_va: %d\n",i,align_va);
   readFromSwapFile(p, buffer, i*PGSIZE, PGSIZE); //reading page to pa 
-
   free_pa_index = find_free_page_in_ram(); 
   if (free_pa_index == -1){
+    
     free_pa_index = swap(i); 
     printf("i value : %d     free_pa_index : %d \n",i,free_pa_index);
     if(free_pa_index == -1){
@@ -513,12 +518,14 @@ handle_page_fault(uint64 va){
     }
   }
   //reading the page content into buffer
-  
+  // memset(buffer,0,PGSIZE);
+  // printf("reading page i: %d align_va: %d\n",i,align_va);
+  // readFromSwapFile(p, buffer, i*PGSIZE, PGSIZE); //reading page to pa 
    *pte &= ~PTE_PG;
    if(*pte & PTE_V){
-     printf("page %d is valid!!! \n",align_va); 
+    //  printf("page %d is valid!!! \n",align_va); 
    }
-  printf("page %d is not valid!!! \n",align_va); 
+  // printf("page %d is not valid!!! \n",align_va); 
 
   if(!init_free_ram_page(p->pagetable, va, (uint64)buffer, free_pa_index)){
     panic("in Handle_PGFLT, unexpectedly failed to find unused entry in main_mem array of the process");
@@ -649,7 +656,7 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
-  printf("In uvmcopy, with sz %d \n", sz); 
+  printf("In uvmcopy, with sz %d \n", sz);  //TODO DELETE
   pte_t *pte;
   uint64 pa, i;
   uint flags;
@@ -658,8 +665,11 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
-    if((*pte & PTE_V) == 0)
-      panic("uvmcopy: page not present");
+    if((*pte & PTE_V) == 0 && !(*pte & PTE_PG)){
+        printf("uvmcopy i value is : %d\n",i); //TODO DELETE
+        panic("uvmcopy: page not present");
+    }
+      
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
     if((mem = kalloc()) == 0)
