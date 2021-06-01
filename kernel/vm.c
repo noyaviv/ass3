@@ -156,6 +156,7 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     }
     *pte = PA2PTE(pa) | perm | PTE_V;
     if(*pte & PTE_PG){ //if paged out, turn off valid flag 
+    printf("******hi you****\n"); 
        *pte &= ~PTE_V;
      }
     if(a == last)
@@ -658,6 +659,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
   printf("In uvmcopy, with sz %d \n", sz);  //TODO DELETE
   pte_t *pte;
+  pte_t *pte_new;
   uint64 pa, i;
   uint flags;
   char *mem;
@@ -666,9 +668,9 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0 && !(*pte & PTE_PG)){
-        printf("uvmcopy i value is : %d\n",i); //TODO DELETE
-        panic("uvmcopy: page not present");
-    }
+         printf("uvmcopy i value is : %d\n",i); //TODO DELETE
+         panic("uvmcopy: page not present");
+     }
       
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
@@ -678,6 +680,14 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
       kfree(mem);
       goto err;
+    }
+    if((*pte & PTE_PG)){
+        if(pte_new = walk(new, i, 0)){
+        *pte_new &= ~PTE_V;
+        *pte_new |= ~PTE_PG;
+
+
+        }
     }
   }
   return 0;
