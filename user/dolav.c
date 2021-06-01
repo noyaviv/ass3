@@ -206,10 +206,10 @@ int main(int argc, char **argv) {
         }
     }
    //fork_test(); // passed
-   priority_test(); // passed
+  // priority_test(); // passed
 //    exec_test(); // passed
-//    alloc_dealloc_test(); // passed
+   alloc_dealloc_test(); // passed
 //    advance_alloc_dealloc_test(); // passed
-    // child_test(); // fails!!!
+    //child_test(); // fails!!!
     exit(0);
 }
