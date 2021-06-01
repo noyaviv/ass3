@@ -101,7 +101,7 @@ struct ram_page{
 // data structure that containes secondary storage that is located in the disk memory
 struct swap_pages{
   struct swap_page pages[MAX_PSYC_PAGES];
-  int page_counter; // TODO check if needed
+  uint page_counter; // TODO check if needed
 };
 
 // task 1.1
