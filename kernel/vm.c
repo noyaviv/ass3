@@ -269,8 +269,7 @@ ones_counter(uint page_counter){
 
 int
 use_NFUA(){
-  struct proc *p =  myproc();
-  int page_index=5;  
+  struct proc *p =  myproc(); 
   int min_index = 1;
   uint min_counter = p->ram_pages.pages[1].page_counter;
     for(int i = 1 ; i > MAX_PSYC_PAGES ; i++){
@@ -279,8 +278,7 @@ use_NFUA(){
         min_counter = p->ram_pages.pages[i].page_counter;
       }
     }
-    page_index = min_index;
-    return page_index; 
+    return min_index; 
   // //printf("****In use_NFUA *****\n"); 
   // int min_page_index=0;
   // uint min_page_counter=0xffffffff; //max int value
