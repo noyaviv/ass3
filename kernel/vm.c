@@ -235,6 +235,7 @@ update_pages_counters(){
         p->ram_pages.pages[i].page_counter |= 1<<31; //put 1 in the msb
         *pte &= ~PTE_A; //turn off flag
       }
+      printf("****** %d ***** \n", p->ram_pages.pages[i].page_counter); 
     }
   }
 }
