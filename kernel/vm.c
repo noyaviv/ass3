@@ -177,6 +177,7 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     panic("uvmunmap: not aligned");
 
   for(a = va; a < va + npages*PGSIZE; a += PGSIZE){
+    printf("enter to uvmunmap with %d  \n", a) ;
     if((pte = walk(pagetable, a, 0)) == 0)
       panic("uvmunmap: walk");
     if((*pte & PTE_V) == 0 && (*pte & PTE_PG) == 0)
@@ -191,7 +192,8 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     struct proc* p = myproc();
     acquire(&p->lock);
     for(int i = 0 ; i < MAX_PSYC_PAGES ; i++){
-      if(a == (uint64)p->ram_pages.pages[i].virtual_address){
+      if((a == (uint64)p->ram_pages.pages[i].virtual_address) && p->ram_pages.pages[i].is_used){
+        printf("changing is_used val for %d \n",i ); 
         p->ram_pages.pages[i].is_used = 0;
       }
     }
