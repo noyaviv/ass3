@@ -188,6 +188,21 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
       kfree((void*)pa);
     }
     *pte = 0;
+    #if SELECTION!=NONE
+      if(myproc()->pid>2){
+        int i =0;
+        while(((uint)myproc()->ram_pages.pages[i].virtual_address != a) && i<16){
+          i++;
+        }
+        //if(i<16 && myproc()->ram_pages.pages[i].page_dir == pgdir){
+          myproc()->ram_pages.pages[i].is_used = 0;
+          myproc()->ram_pages.pages[i].page_counter = reset_counter();
+          // #if SELECTION==SCFIFO || SELECTION==AQ
+          // QueueRemovePage(myproc(), i);
+          // #endif
+        //}
+      }
+    #endif
   }
 }
 
