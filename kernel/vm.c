@@ -307,7 +307,7 @@ use_NFUA(){
   //   }
   //   return min_index; 
   //printf("****In use_NFUA *****\n"); 
-  int min_page_index=0;
+  int min_page_index=-1;
   uint min_page_counter=0xffffffff; //max int value
   struct proc *p =  myproc();
   for (int i=0; i<MAX_PSYC_PAGES; i++){
@@ -450,6 +450,8 @@ swap(int index){
   //   sp_index = index; 
   // }
   uint occupied_index = find_occupied_page_in_ram();
+  if (occupied_index==-1)
+    panic("No occupied_index \n"); 
   // printf("In swap, with page index from ram %d \n", occupied_index);
 
   // if sp_index==-1 then there are MAX_PSYC_PAGES 
