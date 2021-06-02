@@ -82,9 +82,12 @@ kvminithart()
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
-  printf("VA is %d", va); 
-  if(va >= MAXVA)
+  //printf("VA is %d", va); 
+  if(va >= MAXVA){
+    printf("VA is %d", va);
     panic("walk");
+ 
+  }
 
   for(int level = 2; level > 0; level--) {
     pte_t *pte = &pagetable[PX(level, va)];
