@@ -268,10 +268,10 @@ ones_counter(uint page_counter){
   return ones_counter;
 }
 
-uint
+int
 use_NFUA(){
   printf("****In use_NFUA *****\n"); 
-  uint min_page_index=0;
+  int min_page_index=0;
   uint min_page_counter=0xffffffff; //max int value
   struct proc *p =  myproc();
   for (int i=0; i<MAX_PSYC_PAGES; i++){
@@ -290,9 +290,9 @@ use_NFUA(){
   return min_page_index;
 }
 
-uint
+int
 use_LAPA(){
-  uint min_page_index=0;
+  int min_page_index=0;
   uint min_num_of_ones=0xffffffff; //max int value
   uint min_page_counter=0xffffffff;
   uint same_amount_of_ones_counter=0;
@@ -350,7 +350,7 @@ use_LAPA(){
   
 // }
 
-uint64
+int
 find_occupied_page_in_ram(void){
   printf("*****In find_occupied_page_in_ram******\n"); 
   uint occupied_index=0;
