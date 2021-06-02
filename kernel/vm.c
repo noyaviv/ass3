@@ -235,7 +235,6 @@ update_pages_counters(){
         p->ram_pages.pages[i].page_counter |= 1<<31; //put 1 in the msb
         *pte &= ~PTE_A; //turn off flag
       }
-      printf("****** %d ***** \n", p->ram_pages.pages[i].page_counter); 
     }
   }
 }
@@ -270,7 +269,7 @@ ones_counter(uint page_counter){
 
 int
 use_NFUA(){
-  printf("****In use_NFUA *****\n"); 
+  //printf("****In use_NFUA *****\n"); 
   int min_page_index=0;
   uint min_page_counter=0xffffffff; //max int value
   struct proc *p =  myproc();
@@ -280,7 +279,7 @@ use_NFUA(){
       uint64 a = PGROUNDDOWN(p->ram_pages.pages[i].virtual_address);
       pte_t *pte;
       if(((pte = walk(p->pagetable, a, 0)) != 0) && (*pte & PTE_V)){
-        if (p->ram_pages.pages[i].page_counter<min_page_counter ){
+        if (p->ram_pages.pages[i].page_counter<min_page_counter){
           min_page_counter=p->ram_pages.pages[i].page_counter;
           min_page_index=i;
         }
@@ -369,18 +368,18 @@ find_occupied_page_in_ram(void){
   //   }
   // #endif
   #if SELECTION == NFUA
-    occupied_index=use_NFUA();
+    occupied_index = use_NFUA();
   #endif
 
   #if SELECTION == LAPA
-    occupied_index=use_LAPA();
+    occupied_index = use_LAPA();
   #endif
 
   if( occupied_index > 15){
     //proc has a MAX_PSYC_PAGES pages
     panic("ram memory: somthing's wrong from find occupied page");
   }
-  printf("occupied_index is %d \n", occupied_index); 
+  printf("***** occupied_index is %d **********\n", occupied_index); 
   return occupied_index;
 }
 
