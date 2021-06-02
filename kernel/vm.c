@@ -354,6 +354,7 @@ use_LAPA(){
 
 uint64
 find_occupied_page_in_ram(void){
+  printf(*****"In find_occupied_page_in_ram"******); 
   uint occupied_index=0;
   #ifdef SELECTION 
     switch(SELECTION){
