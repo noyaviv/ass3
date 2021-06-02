@@ -193,15 +193,15 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
       kfree((void*)pa);
     }
     *pte = 0;
-    struct proc* p = myproc();
-    acquire(&p->lock);
-    for(int i = 0 ; i < MAX_PSYC_PAGES ; i++){
-      if((a == (uint64)p->ram_pages.pages[i].virtual_address) && p->ram_pages.pages[i].is_used){
-        printf("changing is_used val for %d \n",i ); 
-        p->ram_pages.pages[i].is_used = 0;
-      }
-    }
-    release(&p->lock);
+    // struct proc* p = myproc();
+    // acquire(&p->lock);
+    // for(int i = 0 ; i < MAX_PSYC_PAGES ; i++){
+    //   if((a == (uint64)p->ram_pages.pages[i].virtual_address) && p->ram_pages.pages[i].is_used){
+    //     printf("changing is_used val for %d \n",i ); 
+    //     p->ram_pages.pages[i].is_used = 0;
+    //   }
+    // }
+    // release(&p->lock);
     // #if SELECTION!=NONE
     //    if(myproc()->pid>2){
     //      int i =0;
@@ -624,6 +624,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
   for(; a < newsz; a += PGSIZE){
     mem = kalloc();
     if(mem == 0){
+      kfree(mem);
       uvmdealloc(pagetable, a, oldsz);
       return 0;
     }
