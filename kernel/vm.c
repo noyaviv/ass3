@@ -727,21 +727,23 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
         // printf("uvmcopy i value is : %d\n",i); //TODO DELETE
          panic("uvmcopy: page not present");
      }
-      
-    pa = PTE2PA(*pte);
-    flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
-      goto err;
-    }
-    if((*pte & PTE_PG)){
-        if((pte_new = walk(new, i, 0))){
+     
+    if((*pte & PTE_V) == 0 && (*pte & PTE_PG)){
+      if((pte_new = walk(new, i, 0))){
         *pte_new &= ~PTE_V;
         *pte_new |= ~PTE_PG;
-        }
+      }
+    }
+    else if(*pte & PTE_V){
+      pa = PTE2PA(*pte);
+      flags = PTE_FLAGS(*pte);
+      if((mem = kalloc()) == 0)
+        goto err;
+      memmove(mem, (char*)pa, PGSIZE);
+      if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
+        kfree(mem);
+        goto err;
+      }
     }
   }
   return 0;
