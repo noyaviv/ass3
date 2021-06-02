@@ -228,7 +228,7 @@ uvminit(pagetable_t pagetable, uchar *src, uint sz)
 
 void
 update_pages_counters(){
-  printf("In update_pages_counters"); 
+  //printf("In update_pages_counters\n"); 
   struct proc *p = myproc();
   for(int i=0 ; i<MAX_PSYC_PAGES; i++){
     if (p->ram_pages.pages[i].is_used){
@@ -272,7 +272,7 @@ ones_counter(uint page_counter){
 
 uint
 use_NFUA(){
-  printf("In use_NFUA \n"); 
+  printf("****In use_NFUA *****\n"); 
   uint min_page_index=0;
   uint min_page_counter=0xffffffff; //max int value
   struct proc *p =  myproc();
