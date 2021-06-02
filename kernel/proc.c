@@ -103,6 +103,7 @@ allocpid() {
 uint
 reset_counter(){
   #if SELECTION  == NFUA
+    printf("In reset_counter for NFUA"); 
     return 0;
   #endif
   #if SELECTION  == LAPA
@@ -148,7 +149,7 @@ found:
     for (int i=0 ; i<MAX_PSYC_PAGES ; i++){
       p->swapped_pages.pages[i].virtual_address = 0;
       p->swapped_pages.pages[i].is_used = 0;
-      p->swapped_pages.pages[i].page_counter=reset_counter();
+      p->swapped_pages.pages[i].page_counter = reset_counter();
       p->ram_pages.pages[i].virtual_address = 0;
       p->ram_pages.pages[i].is_used = 0;
       p->ram_pages.pages[i].page_counter = reset_counter();

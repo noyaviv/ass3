@@ -228,14 +228,14 @@ uvminit(pagetable_t pagetable, uchar *src, uint sz)
 
 void
 update_pages_counters(){
-  struct proc *p=myproc();
+  printf("In update_pages_counters"); 
+  struct proc *p = myproc();
   for(int i=0 ; i<MAX_PSYC_PAGES; i++){
     if (p->ram_pages.pages[i].is_used){
-      pte_t *pte=walk(p->pagetable,p->ram_pages.pages[i].virtual_address,0);
+      pte_t *pte = walk(p->pagetable,p->ram_pages.pages[i].virtual_address,0);
       p->ram_pages.pages[i].page_counter>>=1; //shift counter right
       if (*pte & PTE_A){
         p->ram_pages.pages[i].page_counter |= 1<<31; //put 1 in the msb
-        //  p->ram_pages.pages[i].page_counter |=0x80000000;
         *pte &= ~PTE_A; //turn off flag
       }
     }
@@ -272,6 +272,7 @@ ones_counter(uint page_counter){
 
 uint
 use_NFUA(){
+  printf("In use_NFUA \n"); 
   uint min_page_index=0;
   uint min_page_counter=0xffffffff; //max int value
   struct proc *p =  myproc();
@@ -354,12 +355,13 @@ use_LAPA(){
 uint64
 find_occupied_page_in_ram(void){
   uint occupied_index=0;
-  #if SELECTION == NFUA
-    occupied_index=use_NFUA();
-  #endif
 
   #if SELECTION == LAPA
-    occupied_index=use_LAPA();
+    occupied_index = use_LAPA();
+  #endif
+
+  #if SELECTION == NFUA
+    occupied_index = use_NFUA();
   #endif
 
   if( occupied_index > 15){
@@ -371,7 +373,7 @@ find_occupied_page_in_ram(void){
 
 uint64
 find_free_page_in_swapped(void){
-  uint sp_index=0;
+  uint sp_index = 0;
   struct proc *p =  myproc();
   while(sp_index<16){
     //finidng occupied page in swap file memory
