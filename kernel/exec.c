@@ -24,7 +24,7 @@ exec(char *path, char **argv)
   for(int i = 0; i< 16; i++){
     p->swapped_pages.pages[i].is_used = 0;
     p->ram_pages.pages[i].is_used = 0; 
-    p->ram_pages.pages[i].page_counter = reset_counter(); 
+    //p->ram_pages.pages[i].page_counter = reset_counter(); 
   }
 
   begin_op();
