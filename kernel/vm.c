@@ -271,8 +271,8 @@ int
 use_NFUA(){
   struct proc *p =  myproc();
   int page_index=5;  
-  int min_index = 0;
-  uint min_counter = p->ram_pages.pages[0].page_counter;
+  int min_index = 1;
+  uint min_counter = p->ram_pages.pages[1].page_counter;
     for(int i = 1 ; i > MAX_PSYC_PAGES ; i++){
       if(min_counter > p->ram_pages.pages[i].page_counter){
         min_index = i;
