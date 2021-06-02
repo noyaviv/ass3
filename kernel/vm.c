@@ -150,13 +150,10 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
       return -1;
     }
     if(*pte & PTE_V){
-      printf("a is %d \n", a);
-      printf("va is %d \n", va);
       panic("remap");
     }
     *pte = PA2PTE(pa) | perm | PTE_V;
     if(*pte & PTE_PG){ //if paged out, turn off valid flag 
-    printf("******hi you****\n"); 
        *pte &= ~PTE_V;
      }
     if(a == last)
@@ -354,16 +351,18 @@ use_LAPA(){
 
 uint64
 find_occupied_page_in_ram(void){
-  printf("*****In find_occupied_page_in_ram******"); 
+  printf("*****In find_occupied_page_in_ram******\n"); 
   uint occupied_index=0;
   #ifdef SELECTION 
+    printf("*****In SELECTION***** \n"); 
     switch(SELECTION){
       case LAPA:
+        printf("*****In NFUA***** \n"); 
         occupied_index = use_LAPA();
         break; 
       
       case NFUA:
-        printf("*****In NFUA*****"); 
+        printf("*****In NFUA***** \n"); 
         occupied_index = use_NFUA();
         break;
     }
@@ -373,6 +372,7 @@ find_occupied_page_in_ram(void){
     //proc has a MAX_PSYC_PAGES pages
     panic("ram memory: somthing's wrong from find occupied page");
   }
+  printf("occupied_index is %d \n", occupied_index); 
   return occupied_index;
 }
 
@@ -432,9 +432,7 @@ swap(int index){
   *pte |= PTE_PG; //page is on disc
   // printf("In swap, turning off valid for %d\n", a); 
   *pte &= ~PTE_V; //page is not valid
-  if (*pte & PTE_V){
-    printf("Hi there\n"); //todo  
-  }
+
 
   
   return occupied_index; //this physical addres is available now
@@ -489,14 +487,14 @@ handle_page_fault(uint64 va){
     panic("in handle_page_fault, page is not in the swap file");
   }
   printf("In handle_page_fault, desired va page is: %d \n", va); 
-  printf("In handle_page_fault, desired align va page  is: %d \n", align_va); 
+  // printf("In handle_page_fault, desired align va page  is: %d \n", align_va); 
   
 
   int i = 0; 
   while(i<16){
-    printf("swaped page num %d va is %d \n",i, p->swapped_pages.pages[i].virtual_address);
-    printf("swaped page num %d is used %d \n",i, p->swapped_pages.pages[i].is_used); 
-    printf("ram page num %d va is %d \n",i, p->ram_pages.pages[i].virtual_address); 
+    // printf("swaped page num %d va is %d \n",i, p->swapped_pages.pages[i].virtual_address);
+    // printf("swaped page num %d is used %d \n",i, p->swapped_pages.pages[i].is_used); 
+    // printf("ram page num %d va is %d \n",i, p->ram_pages.pages[i].virtual_address); 
     uint64 curr_va = (uint64)p->swapped_pages.pages[i].virtual_address;
     if(curr_va == align_va || curr_va == va){
       if(p->swapped_pages.pages[i].is_used){
@@ -546,9 +544,9 @@ handle_page_fault(uint64 va){
 uint64
 uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 {
-  printf("In uvmalloc with pid: %d \n", myproc()->pid); 
-  printf("oldsize is : %d \n", oldsz); 
-  printf("newsize is : %d \n", newsz); 
+  // printf("In uvmalloc with pid: %d \n", myproc()->pid); 
+  // printf("oldsize is : %d \n", oldsz); 
+  // printf("newsize is : %d \n", newsz); 
 
   char *mem;
   uint64 a;
@@ -583,9 +581,9 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     if(myproc()->pid > 2){
       ram_page_index = find_free_page_in_ram(); 
       if(ram_page_index ==  -1){ //no free ram page
-        printf("In uvmalloc, no free page in ram\n");
+        //printf("In uvmalloc, no free page in ram\n");
         ram_page_index = swap(-1);
-        printf("In uvmalloc, after swap free ram page index is : %d \n", ram_page_index); 
+        //printf("In uvmalloc, after swap free ram page index is : %d \n", ram_page_index); 
         if (ram_page_index == -1) { // if swap failed
           printf("error: process %d needs more than 32 page, exits...\n", myproc()->pid);
           exit(-1);   
@@ -675,7 +673,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0 && !(*pte & PTE_PG)){
-         printf("uvmcopy i value is : %d\n",i); //TODO DELETE
+        // printf("uvmcopy i value is : %d\n",i); //TODO DELETE
          panic("uvmcopy: page not present");
      }
       
