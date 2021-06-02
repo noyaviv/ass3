@@ -355,13 +355,17 @@ use_LAPA(){
 uint64
 find_occupied_page_in_ram(void){
   uint occupied_index=0;
-
-  #if SELECTION == LAPA
-    occupied_index = use_LAPA();
-  #endif
-
-  #if SELECTION == NFUA
-    occupied_index = use_NFUA();
+  #ifdef SELECTION 
+    switch(SELECTION){
+      case LAPA:
+        occupied_index = use_LAPA();
+        break; 
+      
+      case NFUA:
+        printf("*****In NFUA*****"); 
+        occupied_index = use_NFUA();
+        break;
+    }
   #endif
 
   if( occupied_index > 15){

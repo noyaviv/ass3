@@ -103,7 +103,7 @@ allocpid() {
 uint
 reset_counter(){
   #if SELECTION  == NFUA
-    printf("In reset_counter for NFUA"); 
+    printf("In reset_counter for NFUA \n"); 
     return 0;
   #endif
   #if SELECTION  == LAPA
@@ -292,7 +292,7 @@ growproc(int n)
 
   sz = p->sz;
   if(n > 0){
-    printf("Call uvmalloc from growproc, line 281"); 
+    printf("Call uvmalloc from growproc, line 281 \n"); 
 
     if((sz = uvmalloc(p->pagetable, sz, sz + n)) == 0) {
       return -1;
