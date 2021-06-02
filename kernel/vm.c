@@ -82,6 +82,7 @@ kvminithart()
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
+  printf("VA is %d", va); 
   if(va >= MAXVA)
     panic("walk");
 
@@ -522,7 +523,8 @@ void
 handle_page_fault(uint64 va){
   struct proc *p = myproc();
   uint64 align_va = PGROUNDDOWN(va);
-  int free_pa_index;  
+  int free_pa_index; 
+  printf("*******in handle_page_fault*********"); 
   pte_t *pte = walk(p->pagetable, align_va, 0);
   void * buffer =  kalloc(); 
   
