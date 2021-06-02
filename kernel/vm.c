@@ -353,19 +353,26 @@ uint64
 find_occupied_page_in_ram(void){
   printf("*****In find_occupied_page_in_ram******\n"); 
   uint occupied_index=0;
-  #ifdef SELECTION 
-    printf("*****In SELECTION***** \n"); 
-    switch(SELECTION){
-      case LAPA:
-        printf("*****In NFUA***** \n"); 
-        occupied_index = use_LAPA();
-        break; 
+  // #ifdef SELECTION 
+  //   printf("*****In SELECTION***** \n"); 
+  //   switch(SELECTION){
+  //     case LAPA:
+  //       printf("*****In NFUA***** \n"); 
+  //       occupied_index = use_LAPA();
+  //       break; 
       
-      case NFUA:
-        printf("*****In NFUA***** \n"); 
-        occupied_index = use_NFUA();
-        break;
-    }
+  //     case NFUA:
+  //       printf("*****In NFUA***** \n"); 
+  //       occupied_index = use_NFUA();
+  //       break;
+  //   }
+  // #endif
+  #if SELECTION == NFUA
+    occupied_index=use_NFUA();
+  #endif
+
+  #if SELECTION == LAPA
+    occupied_index=use_LAPA();
   #endif
 
   if( occupied_index > 15){
