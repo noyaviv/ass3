@@ -269,24 +269,36 @@ ones_counter(uint page_counter){
 
 int
 use_NFUA(){
-  //printf("****In use_NFUA *****\n"); 
-  int min_page_index=0;
-  uint min_page_counter=0xffffffff; //max int value
   struct proc *p =  myproc();
-  for (int i=0; i<MAX_PSYC_PAGES; i++){
-    //finidng occupied page in swap file memory
-    if(p->ram_pages.pages[i].is_used){
-      uint64 a = PGROUNDDOWN(p->ram_pages.pages[i].virtual_address);
-      pte_t *pte;
-      if(((pte = walk(p->pagetable, a, 0)) != 0) && (*pte & PTE_V)){
-        if (p->ram_pages.pages[i].page_counter<min_page_counter){
-          min_page_counter=p->ram_pages.pages[i].page_counter;
-          min_page_index=i;
-        }
+  int page_index=0;  
+  int min_index = 0;
+  uint min_counter = p->ram_pages.pages[0].page_counter;
+    for(int i = 1 ; i > MAX_PSYC_PAGES ; i++){
+      if(min_counter > p->ram_pages.pages[i].page_counter){
+        min_index = i;
+        min_counter = p->ram_pages.pages[i].page_counter;
       }
     }
-  }
-  return min_page_index;
+    page_index = min_index;
+    return page_index; 
+  // //printf("****In use_NFUA *****\n"); 
+  // int min_page_index=0;
+  // uint min_page_counter=0xffffffff; //max int value
+  // struct proc *p =  myproc();
+  // for (int i=0; i<MAX_PSYC_PAGES; i++){
+  //   //finidng occupied page in swap file memory
+  //   if(p->ram_pages.pages[i].is_used){
+  //     uint64 a = PGROUNDDOWN(p->ram_pages.pages[i].virtual_address);
+  //     pte_t *pte;
+  //     if(((pte = walk(p->pagetable, a, 0)) != 0) && (*pte & PTE_V)){
+  //       if (p->ram_pages.pages[i].page_counter<min_page_counter){
+  //         min_page_counter=p->ram_pages.pages[i].page_counter;
+  //         min_page_index=i;
+  //       }
+  //     }
+  //   }
+  // }
+  // return min_page_index;
 }
 
 int
