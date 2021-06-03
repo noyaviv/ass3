@@ -525,8 +525,8 @@ init_free_ram_page(pagetable_t pagetable, uint64 va, uint64 pa , int index){
   uint64 a = PGROUNDDOWN(va);
 
   if(mappages(pagetable, a, PGSIZE, pa, PTE_W|PTE_X|PTE_R|PTE_U) < 0){
-    uvmdealloc(pagetable, PGSIZE, PGSIZE);
     kfree((void*)pa); //Free the page of physical memory
+    uvmdealloc(pagetable, PGSIZE, PGSIZE);
     return 0; //init page failed
   }
 
