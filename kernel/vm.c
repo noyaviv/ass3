@@ -299,7 +299,7 @@ ones_counter(uint page_counter){
 }
 
 int
-use_NFUA(){
+use_NFUA(struct proc *p){
   // struct proc *p =  myproc(); 
   // int min_index = 1;
   // uint min_counter = p->ram_pages.pages[1].page_counter;
@@ -313,7 +313,7 @@ use_NFUA(){
   //printf("****In use_NFUA *****\n"); 
   int min_page_index=-1;
   uint min_page_counter=0xffffffff; //max int value
-  struct proc *p =  myproc();
+  //struct proc *p =  myproc();
   for (int i=0; i<MAX_PSYC_PAGES; i++){
     //finidng occupied page in swap file memory
     if(p->ram_pages.pages[i].is_used){
@@ -331,12 +331,12 @@ use_NFUA(){
 }
 
 int
-use_LAPA(){
+use_LAPA(struct proc *p){
   int min_page_index=0;
   uint min_num_of_ones=0xffffffff; //max int value
   uint min_page_counter=0xffffffff;
   uint same_amount_of_ones_counter=0;
-  struct proc *p =  myproc();
+ // struct proc *p =  myproc();
   // find page with minimal appears of '1'
   for (int i=0; i<MAX_PSYC_PAGES; i++){
     uint cur_num_of_ones=0;
@@ -375,6 +375,36 @@ use_LAPA(){
   return min_page_index;
 }
 
+int
+use_SFIFO(struct proc *p){
+  pte_t *pte;
+  int first_not_PU = -1;
+  for (int i=0; i< p->ram_pages.q_size; i++){
+    int currPageIndex = DequeuePage(p);
+    if(currPageIndex == -1 || currPageIndex > MAX_PSYC_PAGES)
+      panic("something wrong in page queue");
+    
+    struct ram_page curr_page = p->ram_pages.pages[currPageIndex];
+    if(curr_page.is_used == 0)
+      panic("In use_SFIFO: unused page in ram_pages");
+
+    //finidng used page in main memory
+    pte = walk(p->pagetable, curr_page.virtual_address, 0);
+
+    if((*pte & PTE_U) && !(*pte & PTE_A))
+      return currPageIndex;
+
+    if((*pte & PTE_U) && (first_not_PU==-1))
+      first_not_PU = currPageIndex;
+
+    QueuePage(p,currPageIndex);
+  }
+  if(first_not_PU==-1)
+    panic("Second_chance_FIFO_Algo didnt found page");
+  QueueRemovePage(p, first_not_PU);
+  return first_not_PU;
+}
+
 // // This method loops over the ram_pages from oldest to newwst
 // // If the PTE_A flaf is on- turn it off
 // // Else- swap this page
@@ -391,7 +421,7 @@ use_LAPA(){
 // }
 
 int
-find_occupied_page_in_ram(void){
+find_occupied_page_in_ram(struct proc *p){
   printf("*****In find_occupied_page_in_ram******\n"); 
   uint occupied_index=0;
   // #ifdef SELECTION 
@@ -409,11 +439,13 @@ find_occupied_page_in_ram(void){
   //   }
   // #endif
   #if SELECTION == NFUA
-    occupied_index = use_NFUA();
-  #endif
+    occupied_index = use_NFUA(p);
 
-  #if SELECTION == LAPA
-    occupied_index = use_LAPA();
+  #elif SELECTION == LAPA
+    occupied_index = use_LAPA(p);
+  
+  #elif SELECTION==SCFIFO
+    occupied_index use_SFIFO(p);
   #endif
 
   if( occupied_index > 15){
@@ -453,7 +485,7 @@ swap(int index){
   //     panic("In swap, can't find free page in file");
   //   sp_index = index; 
   // }
-  uint occupied_index = find_occupied_page_in_ram();
+  uint occupied_index = find_occupied_page_in_ram(p);
   if (occupied_index==-1)
     panic("No occupied_index \n"); 
   // printf("In swap, with page index from ram %d \n", occupied_index);
@@ -499,10 +531,12 @@ init_free_ram_page(pagetable_t pagetable, uint64 va, uint64 pa , int index){
     return 0; //init page failed
   }
 
-  p->ram_pages.pages[index].virtual_address = va; //TODO or va ? 
-  // printf("In init_free_ram_page, ram page %d va is: %d\n", index, p->ram_pages.pages[index].virtual_address);
+  p->ram_pages.pages[index].virtual_address = va; //TODO : or a? 
   p->ram_pages.pages[index].is_used = 1;
   p->ram_pages.pages[index].page_counter=reset_counter();
+  #if SELECTION==SCFIFO
+    QueuePage(p,index);
+  #endif
   return 1; //success
 }
 
@@ -859,3 +893,85 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+
+void
+QueuePage(struct proc *p, int pageIndex){
+  if(pageIndex >= MAX_PSYC_PAGES || pageIndex< 0 || p->ram_pages.q_size==MAX_PSYC_PAGES){
+    panic("somthing wrong in QueuePage");
+  }
+  p->ram_pages.fifo_q[p->ram_pages.q_size] = pageIndex;
+  p->ram_pages.q_size++;
+}
+
+int
+DequeuePage(struct proc *p){
+  if(p-> ram_pages.q_size ==0)
+    panic("Dequeue is imposible since queue is empty");
+  int output = p->ram_pages.fifo_q[0];
+  for(int i = 1; i< p->ram_pages.q_size; i++){ 
+      p->ram_pages.fifo_q[i-1] = p->ram_pages.fifo_q[i];
+  }
+  p->ram_pages.fifo_q[p->ram_pages.q_size -1] = -1;
+  p->ram_pages.q_size --;
+  return output;
+}
+
+int
+QueueRemovePage(struct proc *p, int pageIndex){
+  if(pageIndex >= MAX_PSYC_PAGES || pageIndex< 0){
+    panic("somthing wrong in QueueRemovePage");
+  }
+  int foundFlag =0;
+  for(int i = 0; i< p->ram_pages.q_size; i++){ 
+    if(p->ram_pages.fifo_q[i]==pageIndex){
+      //found the page
+      foundFlag =1;
+    }
+    else if(foundFlag){
+      p->ram_pages.fifo_q[i-1] = p->ram_pages.fifo_q[i];
+    }
+  }
+  if(foundFlag){
+     p->ram_pages.fifo_q[p->ram_pages.q_size -1] = -1;
+     p->ram_pages.q_size  --;
+  }
+  return foundFlag;
+}
+
+void
+CleanQueue(struct proc *p){
+  for(int i = 0; i < 16; i++){
+      p->ram_pages.fifo_q[i]=-1;
+    }
+    p->ram_pages.q_size = 0;
+}
+
+// void
+// swap(int *x, int *y){
+//   int tmp = *x;
+//   *x = *y;
+//   *y = tmp;
+// }
+
+// void
+// update_AQ(void){
+//   pte_t *curr_pte;
+//   pte_t *prev_pte;
+//   struct proc *p = myproc();
+//   int curr_page_idx, prev_page_idx;
+//   struct ram_page curr_page, prev_page;
+//   for(int i = 1; i < p->ram_pages.q_size; i++){
+//     curr_page_idx = p->ram_pages.fifo_q[i];
+//     prev_page_idx = p->ram_pages.fifo_q[i-1];
+//     curr_page = p->ram_pages.pages[curr_page_idx];
+//     prev_page = p->ram_pages.pages[prev_page_idx];
+//     curr_pte = walk(p->pagetable, curr_page.virtual_address, 0);
+//     prev_pte = walk(p->pagetable, prev_page.virtual_address, 0);
+//     if((*prev_pte & PTE_A) && (!(*curr_pte & PTE_A))){
+//       swap(&p->ram_pages.fifo_q[i], &p->ram_pages.fifo_q[i-1]);
+//       i++;
+//     }
+//   }
+// }
+
+

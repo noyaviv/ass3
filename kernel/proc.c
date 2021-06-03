@@ -154,6 +154,9 @@ found:
       p->ram_pages.pages[i].is_used = 0;
       p->ram_pages.pages[i].page_counter = reset_counter();
     }
+  #if SELECTION==SCFIFO
+     CleanQueue(p);
+  #endif
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -199,6 +202,21 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+  #if SELECTION!=NONE
+        if(p->pid>2){
+          int i =0;
+          while(i< 16){
+              p->swapped_pages.pages[i].is_used =0;
+              p->swapped_pages.pages[i].page_counter =0;
+              p->ram_pages.pages[i].is_used =0;
+              p->ram_pages.pages[i].page_counter = reset_counter();
+              i++;
+          }
+          #if SELECTION==SCFIFO
+              CleanQueue(p);
+          #endif
+        }
+  #endif
 }
 
 // Create a user page table for a given process,
@@ -361,7 +379,14 @@ fork(void)
         readFromSwapFile(p, buffer, i*PGSIZE, (PGSIZE));
         writeToSwapFile(np, buffer, i*PGSIZE, (PGSIZE));
       }
-    }
+      #if SELECTION==SCFIFO
+        np->ram_pages.fifo_q[i] =  p->ram_pages.fifo_q[i] 
+      #endif
+    }    
+    #if SELECTION==SCFIFO
+      np->ram_pages.q_size = p->ram_pages.q_size;
+    #endif
+
   }
 
   acquire(&wait_lock);

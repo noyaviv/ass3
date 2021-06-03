@@ -108,6 +108,8 @@ struct swap_pages{
 struct ram_pages{
   struct ram_page pages[MAX_PSYC_PAGES];
   int first_page_in;
+  int fifo_q[MAX_PSYC_PAGES];
+  int q_size; 
   uint page_counter; // TODO check if needed
 };
 

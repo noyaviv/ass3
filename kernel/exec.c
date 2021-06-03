@@ -20,12 +20,13 @@ exec(char *path, char **argv)
   struct proghdr ph;
   pagetable_t pagetable = 0, oldpagetable;
   struct proc *p = myproc();
-
-  for(int i = 0; i< 16; i++){
-    p->swapped_pages.pages[i].is_used = 0;
-    p->ram_pages.pages[i].is_used = 0; 
-    //p->ram_pages.pages[i].page_counter = reset_counter(); 
-  }
+  #if SELECTION!=NONE
+    for(int i = 0; i< 16; i++){
+      p->swapped_pages.pages[i].is_used = 0;
+      p->ram_pages.pages[i].is_used = 0; 
+      //p->ram_pages.pages[i].page_counter = reset_counter(); 
+    }
+  #endif
 
   begin_op();
 
@@ -43,6 +44,10 @@ exec(char *path, char **argv)
 
   if((pagetable = proc_pagetable(p)) == 0)
     goto bad;
+
+  #if SELECTION==SCFIFO 
+     CleanQueue(p);
+  #endif
 
   // Load program into memory.
   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
