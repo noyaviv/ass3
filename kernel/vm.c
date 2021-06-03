@@ -202,23 +202,21 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     //   }
     // }
     // release(&p->lock);
-    // #if SELECTION!=NONE
-    //    if(myproc()->pid>2){
-    //      int i =0;
-    //      while(((uint)myproc()->ram_pages.pages[i].virtual_address != a) && i<16){
-    //        i++;
-    //      }
+    #if SELECTION!=NONE
+       if(myproc()->pid>2){
+         int i =0;
+         while(((uint)myproc()->ram_pages.pages[i].virtual_address != a) && i<16){
+           i++;
+         }
        
-    //     if(i<16)
-    //       myproc()->ram_pages.pages[i].is_used = 0;
-      //     // myproc()->ram_pages.pages[i].page_counter = reset_counter();
-      //     // #if SELECTION==SCFIFO || SELECTION==AQ
-      //     // QueueRemovePage(myproc(), i);
-      //     // #endif
-      //   //}
-      // }
-    //    }
-    // #endif
+        if(i<16)
+          myproc()->ram_pages.pages[i].is_used = 0;
+          myproc()->ram_pages.pages[i].page_counter = reset_counter();
+          #if SELECTION==SCFIFO
+            remove_page_from_q(myproc(), i);
+          #endif
+      }
+    #endif
   }
 }
 
@@ -946,32 +944,5 @@ CleanQueue(struct proc *p){
     p->ram_pages.q_size = 0;
 }
 
-// void
-// swap(int *x, int *y){
-//   int tmp = *x;
-//   *x = *y;
-//   *y = tmp;
-// }
-
-// void
-// update_AQ(void){
-//   pte_t *curr_pte;
-//   pte_t *prev_pte;
-//   struct proc *p = myproc();
-//   int curr_page_idx, prev_page_idx;
-//   struct ram_page curr_page, prev_page;
-//   for(int i = 1; i < p->ram_pages.q_size; i++){
-//     curr_page_idx = p->ram_pages.fifo_q[i];
-//     prev_page_idx = p->ram_pages.fifo_q[i-1];
-//     curr_page = p->ram_pages.pages[curr_page_idx];
-//     prev_page = p->ram_pages.pages[prev_page_idx];
-//     curr_pte = walk(p->pagetable, curr_page.virtual_address, 0);
-//     prev_pte = walk(p->pagetable, prev_page.virtual_address, 0);
-//     if((*prev_pte & PTE_A) && (!(*curr_pte & PTE_A))){
-//       swap(&p->ram_pages.fifo_q[i], &p->ram_pages.fifo_q[i-1]);
-//       i++;
-//     }
-//   }
-// }
 
 
