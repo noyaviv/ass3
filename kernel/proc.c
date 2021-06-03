@@ -137,7 +137,6 @@ found:
   p->state = USED;
 
   // task 1.1
-  printf("In allocproc with pid %d \n", p->pid); //TODO  
   // pid 1 is the process of the shell, pid 2 is userinit
   #if SELECTION!=NONE
     if (p->pid>2){

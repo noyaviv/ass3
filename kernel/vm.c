@@ -169,7 +169,8 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 // Optionally free the physical memory.
 void
 uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
-{
+{ 
+  printf("In uvmunmap \n"); 
   uint64 a;
   pte_t *pte;
 
@@ -568,11 +569,18 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 
   for(; a < newsz; a += PGSIZE){
     mem = kalloc();
-    if(mem == 0){
-      kfree(mem);
-      uvmdealloc(pagetable, a, oldsz);
-      return 0;
+    #if SELECTION == NONE
+      if(mem == 0){
+        uvmdealloc(pagetable, a, oldsz);
+        return 0;
     }
+    #else
+      if(mem == 0){
+        kfree(mem);
+        uvmdealloc(pagetable, a, oldsz);
+        return 0;
+    }
+    #endif
     memset(mem, 0, PGSIZE);
     // // task 1.1
     if(myproc()->pid > 2){
@@ -655,7 +663,8 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 // frees any allocated pages on failure.
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
-{
+{ 
+  printf("In uvmcopy \n"); 
   pte_t *pte;
   pte_t *pte_new;
   uint64 pa, i;
@@ -827,21 +836,21 @@ remove_page_from_q(struct proc *p, int pageIndex){
   if(pageIndex >= MAX_PSYC_PAGES || pageIndex< 0){
     panic("somthing wrong in remove_page_from_q");
   }
-  int foundFlag =0;
+  int found =0;
   for(int i = 0; i< p->ram_pages.q_size; i++){ 
     if(p->ram_pages.fifo_q[i]==pageIndex){
       //found the page
-      foundFlag =1;
+      found =1;
     }
-    else if(foundFlag){
+    else if(found){
       p->ram_pages.fifo_q[i-1] = p->ram_pages.fifo_q[i];
     }
   }
-  if(foundFlag){
+  if(found){
      p->ram_pages.fifo_q[p->ram_pages.q_size -1] = -1;
      p->ram_pages.q_size  --;
   }
-  return foundFlag;
+  return found;
 }
 
 void
