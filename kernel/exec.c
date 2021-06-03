@@ -20,6 +20,7 @@ exec(char *path, char **argv)
   struct proghdr ph;
   pagetable_t pagetable = 0, oldpagetable;
   struct proc *p = myproc();
+  printf("***in exec*** \n");
   #if SELECTION!=NONE
     for(int i = 0; i< 16; i++){
       p->swapped_pages.pages[i].is_used = 0;
