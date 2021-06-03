@@ -343,13 +343,15 @@ fork(void)
   if((np = allocproc()) == 0){
     return -1;
   }
- printf("In fork with child pid %d \n", np->pid); //TODO  
+ printf("In fork 1 with child pid %d \n", np->pid); //TODO  
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
     freeproc(np);
     release(&np->lock);
     return -1;
   }
+  printf("In fork 2 with child pid %d \n", np->pid); //TODO  
+
   np->sz = p->sz;
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
@@ -369,6 +371,7 @@ fork(void)
    
   //end of changes
   release(&np->lock);
+ printf("In fork 3 with child pid %d \n", np->pid); //TODO  
 
   // task 1.1
   // copy all paging information from parent
