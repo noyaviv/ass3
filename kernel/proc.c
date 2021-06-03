@@ -409,14 +409,18 @@ fork(void)
     #endif
 
   }
+  printf("In fork 4 with child pid %d \n", np->pid); //TODO  
+
 
   acquire(&wait_lock);
   np->parent = p;
   release(&wait_lock);
+ printf("In fork 5 with child pid %d \n", np->pid); //TODO  
 
   acquire(&np->lock);
   np->state = RUNNABLE;
   release(&np->lock);
+ printf("In fork 6 with child pid %d \n", np->pid); //TODO  
 
   return pid;
 }
