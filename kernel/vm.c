@@ -209,12 +209,13 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
            i++;
          }
        
-        if(i<16)
+        if(i<16){
           myproc()->ram_pages.pages[i].is_used = 0;
           myproc()->ram_pages.pages[i].page_counter = reset_counter();
           #if SELECTION==SCFIFO
             remove_page_from_q(myproc(), i);
           #endif
+        }
       }
     #endif
   }
