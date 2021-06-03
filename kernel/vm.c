@@ -544,7 +544,6 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 {
   char *mem;
   uint64 a;
-  int ram_page_index = -1; 
 
   if(newsz >= KERNBASE)
     return 0;
@@ -553,8 +552,8 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     return oldsz;
 
   a = PGROUNDUP(oldsz);
-  int curr_pages =0; 
   #if SELECTION != NONE
+    int curr_pages =0; 
     for(int l=0; l<16; l++){
       if(myproc()->ram_pages.pages[l].is_used)
         curr_pages++; 
@@ -578,7 +577,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
     // // task 1.1
     if(myproc()->pid > 2){
       #if SELECTION != NONE
-        ram_page_index = find_free_page_in_ram(); 
+        int ram_page_index = find_free_page_in_ram(); 
         if(ram_page_index ==  -1){ //no free ram page
           ram_page_index = swap(-1);
           if (ram_page_index == -1) { // if swap failed
