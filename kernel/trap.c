@@ -38,7 +38,6 @@ usertrap(void)
 {
   int which_dev = 0;
   //uint64 pa = -1; 
-  uint64 va =r_stval();    //task 1.1
 
   //uint64 align_va = PGROUNDDOWN(va); //task 1.1
   if((r_sstatus() & SSTATUS_SPP) != 0)
@@ -61,6 +60,7 @@ usertrap(void)
   
   if(r_scause() == 13 || r_scause() == 15|| r_scause() == 12){
     #if SELECTION !=NONE
+      uint64 va =r_stval();    //task 1.1
       if(p->pid>2)
         handle_page_fault(va); 
     #endif
