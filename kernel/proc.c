@@ -105,7 +105,6 @@ allocpid() {
 uint
 reset_counter(){
   #if SELECTION  == NFUA
-    printf("In reset_counter for NFUA \n"); 
     return 0;
   #endif
   #if SELECTION  == LAPA
@@ -149,24 +148,25 @@ found:
     p->swapped_pages.page_counter=0;
     p->ram_pages.page_counter=0;
     p->ram_pages.first_page_in=0; 
+
+    for (int i=0 ; i<MAX_PSYC_PAGES ; i++){
+      p->swapped_pages.pages[i].virtual_address = 0;
+      p->swapped_pages.pages[i].is_used = 0;
+      #if SELECTION!=NONE
+        p->swapped_pages.pages[i].page_counter = reset_counter();
+      #endif
+      p->ram_pages.pages[i].virtual_address = 0;
+      p->ram_pages.pages[i].is_used = 0;
+      #if SELECTION!=NONE
+        p->ram_pages.pages[i].page_counter = reset_counter();
+      #endif
+    }
+
+    #if SELECTION==SCFIFO
+      CleanQueue(p);
+    #endif
   #endif
 
-  for (int i=0 ; i<MAX_PSYC_PAGES ; i++){
-    p->swapped_pages.pages[i].virtual_address = 0;
-    p->swapped_pages.pages[i].is_used = 0;
-    #if SELECTION!=NONE
-      p->swapped_pages.pages[i].page_counter = reset_counter();
-    #endif
-    p->ram_pages.pages[i].virtual_address = 0;
-    p->ram_pages.pages[i].is_used = 0;
-    #if SELECTION!=NONE
-      p->ram_pages.pages[i].page_counter = reset_counter();
-    #endif
-  }
-
-  #if SELECTION==SCFIFO
-    CleanQueue(p);
-  #endif
   
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -374,35 +374,37 @@ fork(void)
   // copy all paging information from parent
   if(p->pid > 2) {
     #if SELECTION !=NONE
-      np->swapped_pages.page_counter = p->swapped_pages.page_counter;
-      np->ram_pages.page_counter = p->ram_pages.page_counter;
-      np->ram_pages.first_page_in = p->ram_pages.page_counter;
-    #endif 
-    for (int i=0 ; i<MAX_PSYC_PAGES ; i++){
-      np->swapped_pages.pages[i].virtual_address = p->swapped_pages.pages[i].virtual_address;
-      np->swapped_pages.pages[i].is_used = p->swapped_pages.pages[i].is_used;
       #if SELECTION !=NONE
-        np->swapped_pages.pages[i].page_counter = p->swapped_pages.pages[i].page_counter;
-      #endif
-      np->ram_pages.pages[i].virtual_address = p->ram_pages.pages[i].virtual_address;
-      np->ram_pages.pages[i].is_used = p->ram_pages.pages[i].is_used;
-      #if SELECTION !=NONE
-        np->ram_pages.pages[i].page_counter = p->ram_pages.pages[i].page_counter;
-      #endif
-      #if SELECTION !=NONE
-        //copy the data from the parent's file to the child's file
-        if (p->ram_pages.pages[i].is_used){
-          readFromSwapFile(p, buffer, i*PGSIZE, (PGSIZE));
-          writeToSwapFile(np, buffer, i*PGSIZE, (PGSIZE));
-        }
-      #endif
+        np->swapped_pages.page_counter = p->swapped_pages.page_counter;
+        np->ram_pages.page_counter = p->ram_pages.page_counter;
+        np->ram_pages.first_page_in = p->ram_pages.page_counter;
+      #endif 
+      for (int i=0 ; i<MAX_PSYC_PAGES ; i++){
+        np->swapped_pages.pages[i].virtual_address = p->swapped_pages.pages[i].virtual_address;
+        np->swapped_pages.pages[i].is_used = p->swapped_pages.pages[i].is_used;
+        #if SELECTION !=NONE
+          np->swapped_pages.pages[i].page_counter = p->swapped_pages.pages[i].page_counter;
+        #endif
+        np->ram_pages.pages[i].virtual_address = p->ram_pages.pages[i].virtual_address;
+        np->ram_pages.pages[i].is_used = p->ram_pages.pages[i].is_used;
+        #if SELECTION !=NONE
+          np->ram_pages.pages[i].page_counter = p->ram_pages.pages[i].page_counter;
+        #endif
+        #if SELECTION !=NONE
+          //copy the data from the parent's file to the child's file
+          if (p->ram_pages.pages[i].is_used){
+            readFromSwapFile(p, buffer, i*PGSIZE, (PGSIZE));
+            writeToSwapFile(np, buffer, i*PGSIZE, (PGSIZE));
+          }
+        #endif
 
+        #if SELECTION==SCFIFO
+          np->ram_pages.fifo_q[i] =  p->ram_pages.fifo_q[i];  
+        #endif
+      }    
       #if SELECTION==SCFIFO
-        np->ram_pages.fifo_q[i] =  p->ram_pages.fifo_q[i];  
+        np->ram_pages.q_size = p->ram_pages.q_size;
       #endif
-    }    
-    #if SELECTION==SCFIFO
-      np->ram_pages.q_size = p->ram_pages.q_size;
     #endif
 
   }
