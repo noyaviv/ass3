@@ -188,7 +188,7 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
       panic("uvmunmap: not mapped");
     if(PTE_FLAGS(*pte) == PTE_V)
       panic("uvmunmap: not a leaf");
-    if(do_free){
+    if(do_free & (*pte & PTE_PG)==0){
       printf("******im in here***** \n");
       uint64 pa = PTE2PA(*pte);
       kfree((void*)pa);
@@ -219,6 +219,8 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
         }
       }
     #endif
+
+    //TODO : maybe add clean in file fieldss
   }
 }
 
