@@ -396,9 +396,9 @@ fork(void)
           writeToSwapFile(np, buffer, i*PGSIZE, (PGSIZE));
         }
       #endif
-      
+
       #if SELECTION==SCFIFO
-        np->ram_pages.fifo_q[i] =  p->ram_pages.fifo_q[i] 
+        np->ram_pages.fifo_q[i] =  p->ram_pages.fifo_q[i];  
       #endif
     }    
     #if SELECTION==SCFIFO
