@@ -186,6 +186,10 @@ int             find_and_init_page(uint64, uint64); //task 1.1
 int             find_free_page_in_ram(void);        //task 1.1
 void            handle_page_fault(uint64);          //task 1.1
 void            update_pages_counters(void);        //task 2
+void            insert_to_q(struct proc *, int);
+int             dequeue(struct proc *); 
+int             remove_page_from_q(struct proc *, int); 
+void            CleanQueue(struct proc *); 
 // plic.c
 void            plicinit(void);
 void            plicinithart(void);

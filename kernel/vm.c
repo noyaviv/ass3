@@ -380,7 +380,7 @@ use_SFIFO(struct proc *p){
   pte_t *pte;
   int first_not_PU = -1;
   for (int i=0; i< p->ram_pages.q_size; i++){
-    int currPageIndex = DequeuePage(p);
+    int currPageIndex = dequeue(p);
     if(currPageIndex == -1 || currPageIndex > MAX_PSYC_PAGES)
       panic("something wrong in page queue");
     
@@ -397,11 +397,11 @@ use_SFIFO(struct proc *p){
     if((*pte & PTE_U) && (first_not_PU==-1))
       first_not_PU = currPageIndex;
 
-    QueuePage(p,currPageIndex);
+    insert_to_q(p,currPageIndex);
   }
   if(first_not_PU==-1)
     panic("Second_chance_FIFO_Algo didnt found page");
-  QueueRemovePage(p, first_not_PU);
+  remove_page_from_q(p, first_not_PU);
   return first_not_PU;
 }
 
@@ -535,7 +535,7 @@ init_free_ram_page(pagetable_t pagetable, uint64 va, uint64 pa , int index){
   p->ram_pages.pages[index].is_used = 1;
   p->ram_pages.pages[index].page_counter=reset_counter();
   #if SELECTION==SCFIFO
-    QueuePage(p,index);
+    insert_to_q(p,index);
   #endif
   return 1; //success
 }
@@ -895,16 +895,16 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 }
 
 void
-QueuePage(struct proc *p, int pageIndex){
+insert_to_q(struct proc *p, int pageIndex){
   if(pageIndex >= MAX_PSYC_PAGES || pageIndex< 0 || p->ram_pages.q_size==MAX_PSYC_PAGES){
-    panic("somthing wrong in QueuePage");
+    panic("somthing wrong in insert_to_q");
   }
   p->ram_pages.fifo_q[p->ram_pages.q_size] = pageIndex;
   p->ram_pages.q_size++;
 }
 
 int
-DequeuePage(struct proc *p){
+dequeue(struct proc *p){
   if(p-> ram_pages.q_size ==0)
     panic("Dequeue is imposible since queue is empty");
   int output = p->ram_pages.fifo_q[0];
@@ -917,9 +917,9 @@ DequeuePage(struct proc *p){
 }
 
 int
-QueueRemovePage(struct proc *p, int pageIndex){
+remove_page_from_q(struct proc *p, int pageIndex){
   if(pageIndex >= MAX_PSYC_PAGES || pageIndex< 0){
-    panic("somthing wrong in QueueRemovePage");
+    panic("somthing wrong in remove_page_from_q");
   }
   int foundFlag =0;
   for(int i = 0; i< p->ram_pages.q_size; i++){ 
