@@ -138,7 +138,7 @@ found:
   p->state = USED;
 
   // task 1.1
-
+  printf("In allocproc with pid %d \n", p->pid); //TODO  
   // pid 1 is the process of the shell, pid 2 is userinit
   #if SELECTION!=NONE
     if (p->pid>2){
@@ -343,7 +343,7 @@ fork(void)
   if((np = allocproc()) == 0){
     return -1;
   }
-
+ printf("In fork with child pid %d \n", np->pid); //TODO  
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
     freeproc(np);
