@@ -343,14 +343,12 @@ fork(void)
   if((np = allocproc()) == 0){
     return -1;
   }
- printf("In fork 1 with child pid %d \n", np->pid); //TODO  
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
     freeproc(np);
     release(&np->lock);
     return -1;
   }
-  printf("In fork 2 with child pid %d \n", np->pid); //TODO  
 
   np->sz = p->sz;
   // copy saved user registers.
@@ -371,7 +369,6 @@ fork(void)
    
   //end of changes
   release(&np->lock);
- printf("In fork 3 with child pid %d \n", np->pid); //TODO  
 
   // task 1.1
   // copy all paging information from parent
@@ -409,18 +406,14 @@ fork(void)
     #endif
 
   }
-  printf("In fork 4 with child pid %d \n", np->pid); //TODO  
-
 
   acquire(&wait_lock);
   np->parent = p;
   release(&wait_lock);
- printf("In fork 5 with child pid %d \n", np->pid); //TODO  
 
   acquire(&np->lock);
   np->state = RUNNABLE;
   release(&np->lock);
- printf("In fork 6 with child pid %d \n", np->pid); //TODO  
 
   return pid;
 }
@@ -466,9 +459,11 @@ exit(int status)
   p->cwd = 0;
 
   // TODO add
-  if(p->pid > 2) {  //task 1.1
-    removeSwapFile(p);
-  }
+  #if SELECTION !=NONE
+    if(p->pid > 2) {  //task 1.1
+      removeSwapFile(p);
+    }
+  #endif
   acquire(&wait_lock);
 
   // Give any children to init.
